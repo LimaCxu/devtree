@@ -21,12 +21,59 @@ const toast=document.querySelector('#toast');let toastTimer;document.querySelect
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();modal.classList.remove('open')}});
 
 const syncButton=document.querySelector('#syncGithub');
-const connectForm=document.querySelector('#githubConnectForm');
 const scanOverlay=document.querySelector('#scanOverlay');
+let authStatePromise;
 function showToast(message){toast.querySelector('b').textContent=message;toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('show'),3000)}
 function initials(name){return name.split(/\s+/).map(part=>part[0]).join('').slice(0,2).toUpperCase()}
 function setProfile(profile){const name=(profile.name||profile.login||'Developer').trim();const pieces=name.split(/\s+/);document.querySelector('#passportName').innerHTML=pieces.length>1?`${pieces[0]}<br>${pieces.slice(1).join(' ')}`:name;document.querySelector('#profileAvatar').textContent=initials(name);if(profile.overallLevel)document.querySelector('#overallLevel').textContent=profile.overallLevel;if(profile.repositoryCount!=null)document.querySelector('#repoCount').textContent=`${profile.repositoryCount} VERIFIED`}
 function renderAnalysis(data){skills={...skills,...data.skills};Object.entries(data.skills).forEach(([key,skill])=>{const node=document.querySelector(`[data-skill="${key}"]`);if(!node)return;node.querySelector('.node-ring b').textContent=skill.score||'?';node.querySelector('.node-ring small').textContent=skill.level?`LV.${skill.level}`:'LOCKED';node.querySelector(':scope > small').textContent=`${skill.evidence.length} EVIDENCE`;node.classList.toggle('locked',skill.level===0);node.classList.toggle('emerging',skill.level>0&&skill.level<6)});setProfile(data.profile);document.querySelector('#scanState').textContent=data.aiReview?.used?'AI VERIFIED':'CODE INDEXED';document.querySelector('#scanTime').textContent='JUST NOW';document.querySelector('.tree-count').textContent=`${Object.values(data.skills).filter(skill=>skill.level>0).length} / ${Object.keys(data.skills).length} NODES DISCOVERED`;syncButton.innerHTML='RESCAN CODE <span>↗</span>'}
 async function runScan(){scanOverlay.classList.add('open');scanOverlay.setAttribute('aria-hidden','false');const logs=['READING REPOSITORY TREES','SELECTING SOURCE EVIDENCE','ASKING LOCAL OLLAMA TO REVIEW','CALCULATING SKILL GRAPH'];let step=0;const ticker=setInterval(()=>{document.querySelector('#scanLog').textContent=logs[step++%logs.length]},900);try{const response=await fetch('/api/analyze',{method:'POST'});let job=await response.json();if(!response.ok)throw new Error(job.error||'Scan failed');while(job.status==='queued'||job.status==='running'){await new Promise(resolve=>setTimeout(resolve,1500));const statusResponse=await fetch(`/api/scans/${job.id}`);job=await statusResponse.json();if(!statusResponse.ok)throw new Error(job.error||'Could not read scan status')}if(job.status==='failed')throw new Error(job.error||'Scan failed');const data=job.result;renderAnalysis(data);showToast(data.aiReview?.used?`${data.aiReview.model} verified ${data.filesInspected} files`:`${data.filesInspected} files verified with deterministic rules`)}catch(error){showToast(error.message)}finally{clearInterval(ticker);scanOverlay.classList.remove('open');scanOverlay.setAttribute('aria-hidden','true');history.replaceState({},'',location.pathname)}}
-async function initializeAuth(){try{const response=await fetch('/api/auth/status');const state=await response.json();if(state.connected){setProfile(state.user);syncButton.innerHTML='SCAN MY CODE <span>↗</span>';connectForm.addEventListener('submit',event=>{event.preventDefault();runScan()});if(new URLSearchParams(location.search).has('connected'))runScan()}else if(new URLSearchParams(location.search).has('demo'))showToast('Demo mode — add GitHub OAuth credentials to scan real code')}catch{showToast('API unavailable — demo mode remains active')}}
+async function getAuthState(){
+  try {
+    const response=await fetch('/api/auth/status',{cache:'no-store'});
+    if(!response.ok)throw new Error('Could not read GitHub connection state');
+    return await response.json();
+  } catch(error) {
+    showToast('API unavailable — start Docker and refresh');
+    return {connected:false,unavailable:true};
+  }
+}
+
+async function handleConnectAction(){
+  syncButton.disabled=true;
+  const previous=syncButton.innerHTML;
+  syncButton.textContent='CHECKING GITHUB…';
+  const state=await (authStatePromise||getAuthState());
+  if(state.connected){
+    syncButton.disabled=false;
+    syncButton.innerHTML='SCAN MY CODE <span>↗</span>';
+    await runScan();
+    return;
+  }
+  if(state.unavailable){
+    syncButton.disabled=false;
+    syncButton.innerHTML=previous;
+    return;
+  }
+  location.assign('/api/auth/github');
+}
+
+syncButton.addEventListener('click',handleConnectAction);
+
+document.querySelector('#profileAvatar').addEventListener('click',()=>{
+  document.querySelector('.passport-card').scrollIntoView({behavior:'smooth',block:'center'});
+  showToast('Developer Passport — verified from your GitHub code');
+});
+
+async function initializeAuth(){
+  authStatePromise=getAuthState();
+  const state=await authStatePromise;
+  if(state.connected){
+    setProfile(state.user);
+    syncButton.innerHTML='SCAN MY CODE <span>↗</span>';
+    if(new URLSearchParams(location.search).has('connected'))runScan();
+  } else if(new URLSearchParams(location.search).has('demo')) {
+    showToast('Demo mode — add GitHub OAuth credentials to scan real code');
+  }
+}
 initializeAuth();
