@@ -1,0 +1,26 @@
+services:
+  devtree:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: devtree
+    restart: unless-stopped
+    ports:
+      - "4317:4173"
+    environment:
+      APP_URL: http://localhost:4317
+      PORT: 4173
+      OLLAMA_ENABLED: "true"
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3.6:latest}
+      OLLAMA_TIMEOUT_MS: ${OLLAMA_TIMEOUT_MS:-180000}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4173/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

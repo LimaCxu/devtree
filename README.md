@@ -15,6 +15,8 @@ DEVTREE is an interactive product prototype for a code-verified developer passpo
 - Repository and source-file scanning through the GitHub API
 - Explainable, deterministic capability scoring with file and line citations
 - Demo fallback when OAuth credentials are not configured
+- Local Ollama review that calibrates rule scores without inventing evidence
+- Docker Compose deployment with host Ollama connectivity
 
 ## Run locally
 
@@ -39,6 +41,19 @@ npm start
 ```
 
 Set `APP_URL` to the public origin and use `<APP_URL>/api/auth/callback` as the production callback URL. GitHub access tokens are retained only in server memory in this milestone; restarting the process logs users out.
+
+## Local Docker + Ollama deployment
+
+DEVTREE defaults to `qwen3.6:latest`. Start Ollama and confirm the model exists, then deploy:
+
+```bash
+ollama list
+docker compose up --build -d
+```
+
+Open `http://localhost:4317`. The container calls the host model through `http://host.docker.internal:11434`. To use another local model, set `OLLAMA_MODEL` before starting Compose. The `/api/health` response reports whether the configured model is reachable.
+
+The analysis has two stages: deterministic rules first collect inspectable repository/file/line evidence, then Ollama reviews only those snippets and may adjust a level by at most one point. If Ollama is unavailable, analysis continues safely with deterministic scoring.
 
 ## Verification
 

@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { analyzeGitHub } from './analyzer.js';
+import { ollamaStatus } from './ollama.js';
 
 const sessions = new Map();
 const states = new Map();
@@ -13,7 +14,7 @@ function session(req) { return sessions.get(cookies(req)[COOKIE]); }
 
 export async function handleApiRequest(req, res) {
   const url = new URL(req.url, appUrl(req));
-  if (url.pathname === '/api/health') return json(res, 200, { ok: true, oauthConfigured: Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) });
+  if (url.pathname === '/api/health') return json(res, 200, { ok: true, oauthConfigured: Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET), ollama: await ollamaStatus() });
   if (url.pathname === '/api/auth/status') {
     const current = session(req);
     return json(res, 200, { connected: Boolean(current), user: current?.user || null, oauthConfigured: Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) });

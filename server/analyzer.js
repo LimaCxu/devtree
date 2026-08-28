@@ -1,3 +1,5 @@
+import { reviewWithOllama } from './ollama.js';
+
 const SKILL_RULES = {
   python: {
     title: 'PYTHON', base: /\.py$/i,
@@ -70,12 +72,19 @@ function lineFor(content, regex) {
   return match ? content.slice(0, match.index).split('\n').length : 1;
 }
 
+function snippetFor(content, regex) {
+  const match = content.match(regex);
+  if (!match) return '';
+  const start = Math.max(0, match.index - 120);
+  return content.slice(start, Math.min(content.length, match.index + match[0].length + 220)).replace(/\s+/g, ' ').trim();
+}
+
 export function scoreSkills(files) {
   return Object.fromEntries(Object.entries(SKILL_RULES).map(([key, rule]) => {
     const hits = [];
     const capabilities = rule.patterns.map(([name, regex]) => {
       const matching = files.filter(file => (rule.base.test(file.path) || rule.base.test(file.content)) && regex.test(`${file.path}\n${file.content}`));
-      for (const file of matching.slice(0, 2)) hits.push({ capability: name, repository: file.repo, path: file.path, line: lineFor(file.content, regex), summary: `${name} is implemented in ${file.path}.`, url: file.url });
+      for (const file of matching.slice(0, 2)) hits.push({ capability: name, repository: file.repo, path: file.path, line: lineFor(file.content, regex), summary: `${name} is implemented in ${file.path}.`, url: file.url, _snippet: snippetFor(file.content, regex) });
       return [matching.length ? '✓' : '✕', name];
     });
     const verified = capabilities.filter(([state]) => state === '✓').length;
@@ -104,7 +113,9 @@ export async function analyzeGitHub(token) {
       }
     } catch { /* Empty or unusually large repositories can be skipped safely. */ }
   }
-  const skills = scoreSkills(files);
+  const ruleSkills = scoreSkills(files);
+  const reviewed = await reviewWithOllama(ruleSkills);
+  const skills = Object.fromEntries(Object.entries(reviewed.skills).map(([key, skill]) => [key, { ...skill, evidence: skill.evidence.map(({ _snippet, ...evidence }) => evidence) }]));
   const overallLevel = Math.max(1, Math.round(Object.values(skills).reduce((sum, skill) => sum + skill.level, 0) / 2));
-  return { profile: { login: user.login, name: user.name || user.login, avatarUrl: user.avatar_url, bio: user.bio, repositoryCount: repos.length, overallLevel }, scannedAt: new Date().toISOString(), filesInspected: files.length, repositories: repos.map(repo => ({ name: repo.name, url: repo.html_url, language: repo.language, pushedAt: repo.pushed_at })), skills };
+  return { profile: { login: user.login, name: user.name || user.login, avatarUrl: user.avatar_url, bio: user.bio, repositoryCount: repos.length, overallLevel }, scannedAt: new Date().toISOString(), filesInspected: files.length, repositories: repos.map(repo => ({ name: repo.name, url: repo.html_url, language: repo.language, pushedAt: repo.pushed_at })), skills, aiReview: reviewed.review };
 }
