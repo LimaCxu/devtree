@@ -1,10 +1,12 @@
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { handleApiRequest } from './api.js';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// Source files and compiled files live at different depths. The process always
+// starts from the application root, so resolving assets from cwd is stable in
+// local development and in the production container.
+const root = process.cwd();
 const dist = path.join(root, 'dist');
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
 
