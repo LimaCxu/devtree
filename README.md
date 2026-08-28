@@ -17,6 +17,8 @@ DEVTREE is an interactive product prototype for a code-verified developer passpo
 - Demo fallback when OAuth credentials are not configured
 - Local Ollama review that calibrates rule scores without inventing evidence
 - Docker Compose deployment with host Ollama connectivity
+- PostgreSQL persistence for encrypted OAuth tokens, sessions, and scan history
+- Redis-backed asynchronous scan worker with durable job status
 
 ## Run locally
 
@@ -54,6 +56,23 @@ docker compose up --build -d
 Open `http://localhost:4317`. The container calls the host model through `http://host.docker.internal:11434`. To use another local model, set `OLLAMA_MODEL` before starting Compose. The `/api/health` response reports whether the configured model is reachable.
 
 The analysis has two stages: deterministic rules first collect inspectable repository/file/line evidence, then Ollama reviews only those snippets and may adjust a level by at most one point. If Ollama is unavailable, analysis continues safely with deterministic scoring.
+
+## Architecture
+
+```text
+Browser → Node API → PostgreSQL
+              ↓
+          Redis queue → Scan worker → GitHub API
+                                   ↘ Local Ollama
+```
+
+OAuth states, sessions, encrypted GitHub tokens, scan jobs, and completed results survive application restarts. The API returns a job immediately; the browser polls `/api/scans/:id` while the worker analyzes repositories in the background.
+
+For production, replace the example database password, set a long random `TOKEN_ENCRYPTION_KEY`, terminate TLS in front of the app, and keep PostgreSQL and Redis off public ports. See [SECURITY.md](SECURITY.md).
+
+## Open source
+
+DEVTREE is available under the MIT License. Contributions are welcome; read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) before submitting changes.
 
 ## Verification
 

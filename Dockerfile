@@ -9,6 +9,8 @@ FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production PORT=4173
 COPY --from=build /app/package.json ./
+COPY --from=build /app/package-lock.json ./
+RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server ./server
 EXPOSE 4173

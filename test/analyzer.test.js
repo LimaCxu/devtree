@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { scoreSkills } from '../server/analyzer.js';
+import { decrypt, encrypt } from '../server/db.js';
 
 const files = [
   {
@@ -39,4 +40,11 @@ test('returns fog-of-war nodes when no evidence exists', () => {
     assert.equal(skill.level, 0);
     assert.equal(skill.evidence.length, 0);
   }
+});
+
+test('encrypts OAuth tokens before persistence', () => {
+  process.env.TOKEN_ENCRYPTION_KEY = 'test-only-encryption-key';
+  const encrypted = encrypt('github-token-value');
+  assert.notEqual(encrypted, 'github-token-value');
+  assert.equal(decrypt(encrypted), 'github-token-value');
 });
