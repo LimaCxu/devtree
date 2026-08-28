@@ -20,6 +20,7 @@ export async function handleApiRequest(req, res) {
     return json(res, 200, { connected: Boolean(current), user: current?.user || null, oauthConfigured: Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) });
   }
   if (url.pathname === '/api/auth/github') {
+    console.log(`[auth] GitHub authorization started at ${new Date().toISOString()}`);
     if (!process.env.GITHUB_CLIENT_ID) return redirect(res, '/?demo=1');
     const state = crypto.randomBytes(24).toString('hex'); states.set(state, Date.now());
     const params = new URLSearchParams({ client_id: process.env.GITHUB_CLIENT_ID, redirect_uri: `${appUrl(req)}/api/auth/callback`, scope: 'read:user repo', state });
