@@ -30,6 +30,11 @@
             <button class="primary-btn" id="syncGithub" type="button">CONNECT GITHUB <span>↗</span></button>
             <button class="text-btn" id="explainBtn">HOW SCORING WORKS <span>→</span></button>
           </div>
+          <div class="connection-status" id="connectionStatus" data-state="checking" aria-live="polite">
+            <span class="connection-dot"></span>
+            <div><b id="connectionTitle">Checking local services…</b><small id="connectionDetail">GitHub and Ollama status will appear here.</small></div>
+            <button id="logoutButton" type="button" hidden>DISCONNECT</button>
+          </div>
         </div>
 
         <div class="passport-card" aria-label="Developer passport">
@@ -139,9 +144,9 @@
     </aside>
     <div class="modal" id="scoreModal" aria-hidden="true"><div><button id="modalClose">×</button><p class="eyebrow">SCORING PROTOCOL</p><h2>Levels are earned,<br>never selected.</h2><p>DEVTREE reads implementation patterns across your repositories, weighs complexity and repetition, then links every conclusion to inspectable code. Missing GitHub evidence is shown as unknown—not incompetence.</p><ol><li><b>01</b> Code is indexed without storing secrets.</li><li><b>02</b> Capabilities are extracted with file-level citations.</li><li><b>03</b> Evidence is scored for depth, repetition and recency.</li></ol></div></div>
     <div class="scan-overlay" id="scanOverlay" aria-hidden="true">
-      <div class="scan-terminal"><p class="eyebrow">REPOSITORY SCAN / LIVE</p><div class="scan-orbit"><span></span><b>D/</b></div><h2 id="scanTitle">Reading your code…</h2><p id="scanDetail">Finding implementation evidence across your most active repositories.</p><div class="scan-progress"><i></i></div><code id="scanLog">AUTHENTICATING GITHUB</code></div>
+      <div class="scan-terminal"><p class="eyebrow">REPOSITORY SCAN / LIVE</p><div class="scan-orbit"><span></span><b id="scanPercent">0%</b></div><h2 id="scanTitle">Preparing your scan…</h2><p id="scanDetail">The worker will report each verified stage.</p><div class="scan-progress"><i id="scanProgress"></i></div><code id="scanLog">QUEUED</code><ol class="scan-steps" id="scanSteps"><li data-stage="repositories">Repositories</li><li data-stage="evidence">Code evidence</li><li data-stage="ai_review">Local AI review</li><li data-stage="scoring">Skill graph</li></ol><div class="scan-actions"><button id="scanRetry" type="button" hidden>RETRY SCAN</button><button id="scanClose" type="button" hidden>CLOSE</button></div></div>
     </div>
     <div class="toast" id="toast"><span>◆</span><b></b></div>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

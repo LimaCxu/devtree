@@ -44,7 +44,7 @@ const schema = {
   required: ['reviews']
 };
 
-function compactEvidence(skills) {
+function compactEvidence(skills: Record<SkillKey, Skill>) {
   return Object.entries(skills).map(([key, skill]) => ({
     skill: key,
     ruleLevel: skill.level,
@@ -54,7 +54,8 @@ function compactEvidence(skills) {
   }));
 }
 
-export async function reviewWithOllama(skills) {
+interface ReviewItem { skill: SkillKey; recommendedLevel: number; confidenceAdjustment: number; explanation: string; missingEvidence: string[] }
+export async function reviewWithOllama(skills: Record<SkillKey, Skill>): Promise<{skills:Record<SkillKey,Skill>;review:{used:boolean;model:string;reason?:string;reviewedAt?:string}}> {
   const current = config();
   if (!current.enabled) return { skills, review: { used: false, reason: 'disabled', model: current.model } };
   const status = await ollamaStatus();
@@ -70,18 +71,19 @@ export async function reviewWithOllama(skills) {
     });
     if (!response.ok) throw new Error(`Ollama HTTP ${response.status}: ${await response.text()}`);
     const body = await response.json();
-    const parsed = JSON.parse(body.message?.content || '{}');
-    const reviews = new Map((parsed.reviews || []).map(item => [item.skill, item]));
+    const parsed = JSON.parse(body.message?.content || '{}') as { reviews?: ReviewItem[] };
+    const reviews = new Map<SkillKey, ReviewItem>((parsed.reviews || []).map(item => [item.skill, item]));
     const reviewed = Object.fromEntries(Object.entries(skills).map(([key, skill]) => {
-      const item = reviews.get(key);
+      const item = reviews.get(key as SkillKey);
       if (!item || skill.level === 0) return [key, skill];
       const level = Math.max(skill.level - 1, Math.min(skill.level + 1, Number(item.recommendedLevel) || skill.level));
       const confidence = Math.max(1, Math.min(99, skill.confidence + Math.max(-15, Math.min(10, Number(item.confidenceAdjustment) || 0))));
       const missing = Array.isArray(item.missingEvidence) ? item.missingEvidence.filter(Boolean).slice(0, 2) : [];
       return [key, { ...skill, level, score: level * 10, confidence, reason: item.explanation || skill.reason, next: missing.length ? `Add verifiable ${missing.join(' and ')} evidence to progress toward Level ${Math.min(10, level + 1)}.` : skill.next }];
-    }));
+    })) as Record<SkillKey, Skill>;
     return { skills: reviewed, review: { used: true, model: current.model, reviewedAt: new Date().toISOString() } };
   } catch (error) {
     return { skills, review: { used: false, reason: error.message, model: current.model } };
   }
 }
+import type { Skill, SkillKey } from '../shared/types.js';

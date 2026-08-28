@@ -36,7 +36,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["node", "server/worker.js"]
+    command: ["node", "dist-server/server/worker.js"]
     restart: unless-stopped
     environment:
       OLLAMA_ENABLED: "true"

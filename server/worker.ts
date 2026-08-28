@@ -9,13 +9,13 @@ while (true) {
   const id = item?.element;
   if (!id) continue;
   try {
-    await updateScan(id, { status: 'running', progress: 10 });
+    await updateScan(id, { status: 'running', stage: 'repositories', progress: 10, error: null });
     const token = await scanToken(id);
     if (!token) throw new Error('GitHub token is unavailable');
-    const result = await analyzeGitHub(token);
-    await updateScan(id, { status: 'completed', progress: 100, result });
+    const result = await analyzeGitHub(token, (stage, progress) => updateScan(id, { status: 'running', stage, progress }));
+    await updateScan(id, { status: 'completed', stage: 'completed', progress: 100, result });
   } catch (error) {
     console.error(`[worker] scan ${id} failed:`, error.message);
-    await updateScan(id, { status: 'failed', error: error.message });
+    await updateScan(id, { status: 'failed', stage: 'failed', error: error instanceof Error ? error.message : 'Unknown scan failure' });
   }
 }

@@ -1,6 +1,8 @@
 import { reviewWithOllama } from './ollama.js';
+import type { AnalysisResult, Evidence, Skill, SkillKey, ScanStage } from '../shared/types.js';
 
-const SKILL_RULES = {
+interface SkillRule { title: string; base: RegExp; patterns: Array<[string, RegExp]> }
+const SKILL_RULES: Record<SkillKey, SkillRule> = {
   python: {
     title: 'PYTHON', base: /\.py$/i,
     patterns: [
@@ -79,7 +81,7 @@ function snippetFor(content, regex) {
   return content.slice(start, Math.min(content.length, match.index + match[0].length + 220)).replace(/\s+/g, ' ').trim();
 }
 
-export function scoreSkills(files) {
+export function scoreSkills(files: Array<{repo:string;path:string;content:string;url:string}>): Record<SkillKey, Skill> {
   return Object.fromEntries(Object.entries(SKILL_RULES).map(([key, rule]) => {
     const hits = [];
     const capabilities = rule.patterns.map(([name, regex]) => {
@@ -93,14 +95,15 @@ export function scoreSkills(files) {
     const confidence = verified === 0 ? 0 : Math.min(98, 58 + verified * 7 + repetition * 3);
     const missing = capabilities.filter(([state]) => state !== '✓').map(([, name]) => name);
     return [key, { title: rule.title, level, score: level * 10, confidence, capabilities, repositoryCount: repetition, evidence: hits.slice(0, 6), reason: verified ? `${repetition} repositories provide evidence for ${verified} of ${capabilities.length} tracked ${rule.title.toLowerCase()} capabilities.` : `No reliable ${rule.title.toLowerCase()} code signal was found in the repositories scanned.`, next: missing.length ? `Add verifiable ${missing.slice(0, 2).join(' and ')} evidence to progress toward Level ${Math.min(10, level + 1)}.` : `Demonstrate this skill across more production repositories to deepen confidence.` }];
-  }));
+  })) as Record<SkillKey, Skill>;
 }
 
-export async function analyzeGitHub(token) {
+export async function analyzeGitHub(token: string, onProgress: (stage: ScanStage, progress: number) => Promise<void> = async () => {}) : Promise<AnalysisResult> {
+  await onProgress('repositories', 15);
   const [user, allRepos] = await Promise.all([github('/user', token), github('/user/repos?per_page=50&sort=pushed&affiliation=owner,collaborator', token)]);
   const repos = allRepos.filter(repo => !repo.fork && !repo.archived).slice(0, MAX_REPOS);
   const files = [];
-  for (const repo of repos) {
+  for (const [repoIndex, repo] of repos.entries()) {
     try {
       const branch = encodeURIComponent(repo.default_branch);
       const tree = await github(`/repos/${repo.full_name}/git/trees/${branch}?recursive=1`, token);
@@ -112,10 +115,14 @@ export async function analyzeGitHub(token) {
         } catch { /* A single unreadable file must not abort a scan. */ }
       }
     } catch { /* Empty or unusually large repositories can be skipped safely. */ }
+    await onProgress('repositories', 15 + Math.round(((repoIndex + 1) / Math.max(1, repos.length)) * 40));
   }
+  await onProgress('evidence', 62);
   const ruleSkills = scoreSkills(files);
+  await onProgress('ai_review', 72);
   const reviewed = await reviewWithOllama(ruleSkills);
-  const skills = Object.fromEntries(Object.entries(reviewed.skills).map(([key, skill]) => [key, { ...skill, evidence: skill.evidence.map(({ _snippet, ...evidence }) => evidence) }]));
+  await onProgress('scoring', 94);
+  const skills = Object.fromEntries(Object.entries(reviewed.skills).map(([key, skill]) => [key, { ...skill, evidence: skill.evidence.map(({ _snippet, ...evidence }) => evidence) }])) as Record<SkillKey, Skill>;
   const overallLevel = Math.max(1, Math.round(Object.values(skills).reduce((sum, skill) => sum + skill.level, 0) / 2));
-  return { profile: { login: user.login, name: user.name || user.login, avatarUrl: user.avatar_url, bio: user.bio, repositoryCount: repos.length, overallLevel }, scannedAt: new Date().toISOString(), filesInspected: files.length, repositories: repos.map(repo => ({ name: repo.name, url: repo.html_url, language: repo.language, pushedAt: repo.pushed_at })), skills, aiReview: reviewed.review };
+  return { profile: { login: user.login, name: user.name || user.login, avatarUrl: user.avatar_url, bio: user.bio, repositoryCount: repos.length, overallLevel }, scannedAt: new Date().toISOString(), filesInspected: files.length, repositories: repos.map(repo => ({ name: repo.name, url: repo.html_url, language: repo.language, pushedAt: repo.pushed_at })), skills, aiReview: reviewed.review } as AnalysisResult;
 }

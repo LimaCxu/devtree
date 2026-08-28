@@ -19,6 +19,8 @@ DEVTREE is an interactive product prototype for a code-verified developer passpo
 - Docker Compose deployment with host Ollama connectivity
 - PostgreSQL persistence for encrypted OAuth tokens, sessions, and scan history
 - Redis-backed asynchronous scan worker with durable job status
+- End-to-end TypeScript for browser, API, database, analyzer, and worker
+- Real scan stages, resumable progress, actionable failures, and retry controls
 
 ## Run locally
 
@@ -27,7 +29,7 @@ npm install
 npm run dev
 ```
 
-The UI runs at `http://localhost:5173`. Without OAuth credentials it operates in demo mode.
+The UI runs at `http://localhost:5173`. `npm run typecheck` validates both browser and server contracts.
 
 ## Connect a GitHub OAuth app
 
@@ -42,7 +44,7 @@ npm run build
 npm start
 ```
 
-Set `APP_URL` to the public origin and use `<APP_URL>/api/auth/callback` as the production callback URL. GitHub access tokens are retained only in server memory in this milestone; restarting the process logs users out.
+Set `APP_URL` to the public origin and use `<APP_URL>/api/auth/callback` as the production callback URL. Sessions and encrypted OAuth tokens are stored in PostgreSQL and survive restarts.
 
 ## Local Docker + Ollama deployment
 
@@ -55,7 +57,7 @@ docker compose up --build -d
 
 Open `http://localhost:4317`. The container calls the host model through `http://host.docker.internal:11434`. To use another local model, set `OLLAMA_MODEL` before starting Compose. The `/api/health` response reports whether the configured model is reachable.
 
-The analysis has two stages: deterministic rules first collect inspectable repository/file/line evidence, then Ollama reviews only those snippets and may adjust a level by at most one point. If Ollama is unavailable, analysis continues safely with deterministic scoring.
+The analysis reports four real stages: repository indexing, evidence extraction, local AI review, and skill scoring. Ollama reviews only selected snippets and may adjust a rule score by at most one level. If Ollama is unavailable, analysis continues safely with deterministic scoring.
 
 ## Architecture
 
@@ -68,6 +70,8 @@ Browser → Node API → PostgreSQL
 
 OAuth states, sessions, encrypted GitHub tokens, scan jobs, and completed results survive application restarts. The API returns a job immediately; the browser polls `/api/scans/:id` while the worker analyzes repositories in the background.
 
+Shared contracts live in `shared/types.ts`. Vite builds the browser bundle while TypeScript compiles the Node API and worker into `dist-server` for the production container.
+
 For production, replace the example database password, set a long random `TOKEN_ENCRYPTION_KEY`, terminate TLS in front of the app, and keep PostgreSQL and Redis off public ports. See [SECURITY.md](SECURITY.md).
 
 ## Open source
@@ -78,6 +82,7 @@ DEVTREE is available under the MIT License. Contributions are welcome; read [CON
 
 ```bash
 npm test
+npm run typecheck
 npm run build
 ```
 
@@ -85,4 +90,4 @@ npm run build
 
 > Skills are claims. Code is evidence. Show me the code.
 
-This milestone includes the first working GitHub analysis pipeline. Webhook rescans, durable encrypted sessions, an LLM evidence-review layer, persistence, and per-user public passport URLs remain on the production roadmap.
+This milestone includes the working GitHub analysis pipeline, durable encrypted sessions, local LLM evidence review, resumable scan state, and inspectable code citations. Webhook rescans and public passport URLs remain on the production roadmap.

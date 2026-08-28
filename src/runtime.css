@@ -1,5 +1,14 @@
 .passport-seal b { font: inherit; }
 .hero::before, .passport-card::before, .fog, .links { pointer-events: none; }
+.connection-status { margin-top: 22px; width: min(100%, 530px); border-top: 1px solid var(--line); padding: 13px 0; display: grid; grid-template-columns: 10px 1fr auto; gap: 11px; align-items: center; }
+.connection-dot { width: 7px; height: 7px; border-radius: 50%; background: #8b969c; }
+.connection-status b, .connection-status small { display: block; font: 9px/1.45 var(--mono); }
+.connection-status small { color: var(--muted); margin-top: 2px; }
+.connection-status button { border: 0; background: none; color: var(--muted); font: 8px var(--mono); cursor: pointer; border-bottom: 1px solid var(--line); padding: 5px 0; }
+.connection-status[data-state="connected"] .connection-dot { background: var(--cyan-dark); box-shadow: 0 0 0 4px #27d8d020; }
+.connection-status[data-state="error"] .connection-dot { background: #c05443; }
+.connection-status[data-state="checking"] .connection-dot { animation: connection-pulse 1.3s ease-in-out infinite; }
+.primary-btn:disabled { cursor: wait; opacity: .58; }
 .evidence-item a { color: var(--cyan-dark); text-decoration: none; border-bottom: 1px solid #0b827f55; }
 .scan-overlay { position: fixed; inset: 0; background: #111820ed; z-index: 60; color: #fff; display: grid; place-items: center; opacity: 0; pointer-events: none; transition: .35s; }
 .scan-overlay.open { opacity: 1; pointer-events: auto; }
@@ -13,7 +22,14 @@
 .scan-orbit span { position: absolute; width: 9px; height: 9px; background: var(--cyan); border-radius: 50%; top: -5px; box-shadow: 0 0 20px var(--cyan); }
 .scan-orbit b { font: 600 26px var(--display); color: var(--cyan); }
 .scan-progress { height: 3px; background: #3b4750; margin: 34px 0 14px; overflow: hidden; }
-.scan-progress i { display: block; height: 100%; width: 35%; background: var(--cyan); animation: scan-progress 2.1s ease-in-out infinite; }
+.scan-progress i { display: block; height: 100%; width: 0; background: var(--cyan); transition: width .45s ease; }
 .scan-terminal code { font: 9px var(--mono); color: #7f8e96; letter-spacing: .12em; }
+.scan-steps { list-style: none; padding: 0; margin: 28px 0 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #3b4750; }
+.scan-steps li { padding: 10px 5px; background: var(--ink); color: #66767f; font: 8px var(--mono); }
+.scan-steps li.active { color: #fff; background: #213039; }
+.scan-steps li.done { color: var(--cyan); }
+.scan-actions { display: flex; justify-content: center; gap: 10px; margin-top: 22px; }
+.scan-actions button { border: 1px solid #596870; background: transparent; color: #fff; padding: 10px 14px; font: 9px var(--mono); cursor: pointer; }
+@keyframes connection-pulse { 50% { opacity: .3; } }
 @keyframes orbit { to { transform: rotate(360deg); } }
-@keyframes scan-progress { 0% { transform: translateX(-110%); } 50% { width: 60%; } 100% { transform: translateX(290%); } }
+@media(max-width:620px){.connection-status{grid-template-columns:10px 1fr}.connection-status button{grid-column:2;justify-self:start}.scan-steps{grid-template-columns:1fr 1fr}}
