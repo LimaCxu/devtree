@@ -31,7 +31,7 @@ export async function handleApiRequest(req, res) {
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', { method: 'POST', headers: { accept: 'application/json', 'content-type': 'application/json' }, body: JSON.stringify({ client_id: process.env.GITHUB_CLIENT_ID, client_secret: process.env.GITHUB_CLIENT_SECRET, code: url.searchParams.get('code'), redirect_uri: `${appUrl(req)}/api/auth/callback` }) });
     const tokenData = await tokenResponse.json(); if (!tokenData.access_token) return redirect(res, '/?error=oauth_token');
     const userResponse = await fetch('https://api.github.com/user', { headers: { Authorization: `Bearer ${tokenData.access_token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'DEVTREE' } });
-    const user = await userResponse.json(); await saveUser(user, tokenData.access_token); const id = await createSession(user.id);
+    const user = await userResponse.json(); await saveUser(user, tokenData); const id = await createSession(user.id);
     return redirect(res, '/?connected=1', `${COOKIE}=${id}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800${appUrl(req).startsWith('https') ? '; Secure' : ''}`);
   }
   if (url.pathname === '/api/auth/logout' && req.method === 'POST') { const id = cookies(req)[COOKIE]; await deleteSession(id); res.setHeader('set-cookie', `${COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`); return json(res, 200, { ok: true }); }
