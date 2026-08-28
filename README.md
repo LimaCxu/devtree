@@ -4,13 +4,17 @@
 
 DEVTREE is an interactive product prototype for a code-verified developer passport. It turns repository evidence into explainable skill levels, reveals new branches through a fog-of-war skill graph, and creates real GitHub quests around demonstrated capability gaps.
 
-## Prototype features
+## Product features
 
 - Interactive skill graph with verified, emerging, and undiscovered nodes
 - File-level evidence drawer explaining every AI-assigned level
 - AI-generated development quest with estimated XP rewards
 - Career Boss gap analysis and quest-line generator
 - Responsive developer passport designed for public sharing
+- GitHub OAuth with server-side, `HttpOnly` sessions
+- Repository and source-file scanning through the GitHub API
+- Explainable, deterministic capability scoring with file and line citations
+- Demo fallback when OAuth credentials are not configured
 
 ## Run locally
 
@@ -19,8 +23,32 @@ npm install
 npm run dev
 ```
 
+The UI runs at `http://localhost:5173`. Without OAuth credentials it operates in demo mode.
+
+## Connect a GitHub OAuth app
+
+1. Create a GitHub OAuth App and set its callback URL to `http://localhost:5173/api/auth/callback`.
+2. Copy `.env.example` to `.env` and add the client ID and secret.
+3. Export those variables in your shell, then run `npm run dev`.
+
+For a production-like local build:
+
+```bash
+npm run build
+npm start
+```
+
+Set `APP_URL` to the public origin and use `<APP_URL>/api/auth/callback` as the production callback URL. GitHub access tokens are retained only in server memory in this milestone; restarting the process logs users out.
+
+## Verification
+
+```bash
+npm test
+npm run build
+```
+
 ## Product principle
 
 > Skills are claims. Code is evidence. Show me the code.
 
-This repository currently contains the high-fidelity frontend MVP. GitHub OAuth, repository indexing, code analysis, webhooks, and persistent scoring are the next production layer.
+This milestone includes the first working GitHub analysis pipeline. Webhook rescans, durable encrypted sessions, an LLM evidence-review layer, persistence, and per-user public passport URLs remain on the production roadmap.

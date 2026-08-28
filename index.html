@@ -10,13 +10,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/runtime.css" />
   </head>
   <body>
     <div class="noise" aria-hidden="true"></div>
     <header class="topbar">
       <a class="brand" href="#" aria-label="DEVTREE home"><span class="brand-mark">D/</span> DEVTREE</a>
-      <div class="scan-state"><span class="pulse"></span> CODE INDEXED <span class="muted">2M AGO</span></div>
-      <button class="avatar" aria-label="Open profile">LC</button>
+      <div class="scan-state"><span class="pulse"></span> <span id="scanState">DEMO INDEX</span> <span class="muted" id="scanTime">READY</span></div>
+      <button class="avatar" id="profileAvatar" aria-label="Open profile">LC</button>
     </header>
 
     <main>
@@ -26,22 +27,22 @@
           <h1>Your code becomes<br>your <em>skill tree.</em></h1>
           <p class="lede">No self-reported skills. No vanity metrics.<br>Every level is verified by the code you ship.</p>
           <div class="hero-actions">
-            <button class="primary-btn" data-toast="GitHub sync started">SYNC GITHUB <span>↗</span></button>
+            <button class="primary-btn" id="syncGithub">CONNECT GITHUB <span>↗</span></button>
             <button class="text-btn" id="explainBtn">HOW SCORING WORKS <span>→</span></button>
           </div>
         </div>
 
         <div class="passport-card" aria-label="Developer passport">
           <div class="passport-head">
-            <div><span class="tiny">VERIFIED DEVELOPER</span><strong>LIAM<br>CHEN</strong></div>
-            <div class="passport-seal">31<span>LV</span></div>
+            <div><span class="tiny">VERIFIED DEVELOPER</span><strong id="passportName">LIAM<br>CHEN</strong></div>
+            <div class="passport-seal"><b id="overallLevel">31</b><span>LV</span></div>
           </div>
           <div class="role">AI BACKEND ENGINEER</div>
           <div class="xp-label"><span>8,420 XP</span><span>9,000</span></div>
           <div class="xp"><i style="width: 86%"></i></div>
           <div class="passport-stats">
             <div><span>TOP SKILL</span><b>PYTHON 92</b></div>
-            <div><span>REPOSITORIES</span><b>12 VERIFIED</b></div>
+            <div><span>REPOSITORIES</span><b id="repoCount">12 VERIFIED</b></div>
           </div>
           <div class="fingerprint" aria-hidden="true">⌁⌁⌁<br>⌁◉⌁<br>⌁⌁⌁</div>
           <div class="verified"><span>◆</span> VERIFIED BY CODE</div>
@@ -137,6 +138,9 @@
       <div class="next-level"><span>NEXT LEVEL</span><p id="nextLevel">Add integration tests and production observability to reach Level 9.</p></div>
     </aside>
     <div class="modal" id="scoreModal" aria-hidden="true"><div><button id="modalClose">×</button><p class="eyebrow">SCORING PROTOCOL</p><h2>Levels are earned,<br>never selected.</h2><p>DEVTREE reads implementation patterns across your repositories, weighs complexity and repetition, then links every conclusion to inspectable code. Missing GitHub evidence is shown as unknown—not incompetence.</p><ol><li><b>01</b> Code is indexed without storing secrets.</li><li><b>02</b> Capabilities are extracted with file-level citations.</li><li><b>03</b> Evidence is scored for depth, repetition and recency.</li></ol></div></div>
+    <div class="scan-overlay" id="scanOverlay" aria-hidden="true">
+      <div class="scan-terminal"><p class="eyebrow">REPOSITORY SCAN / LIVE</p><div class="scan-orbit"><span></span><b>D/</b></div><h2 id="scanTitle">Reading your code…</h2><p id="scanDetail">Finding implementation evidence across your most active repositories.</p><div class="scan-progress"><i></i></div><code id="scanLog">AUTHENTICATING GITHUB</code></div>
+    </div>
     <div class="toast" id="toast"><span>◆</span><b></b></div>
     <script type="module" src="/src/main.js"></script>
   </body>

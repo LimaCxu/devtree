@@ -1,0 +1,18 @@
+.passport-seal b { font: inherit; }
+.evidence-item a { color: var(--cyan-dark); text-decoration: none; border-bottom: 1px solid #0b827f55; }
+.scan-overlay { position: fixed; inset: 0; background: #111820ed; z-index: 60; color: #fff; display: grid; place-items: center; opacity: 0; pointer-events: none; transition: .35s; }
+.scan-overlay.open { opacity: 1; pointer-events: auto; }
+.scan-terminal { width: min(540px, 88vw); text-align: center; }
+.scan-terminal .eyebrow { color: var(--cyan); }
+.scan-terminal h2 { font: 600 42px var(--display); letter-spacing: -.04em; margin: 24px 0 10px; }
+.scan-terminal p:not(.eyebrow) { color: #91a0a8; font-size: 13px; }
+.scan-orbit { width: 120px; height: 120px; border: 1px solid #63727a; border-radius: 50%; margin: 30px auto; display: grid; place-items: center; position: relative; }
+.scan-orbit::before, .scan-orbit::after { content: ""; position: absolute; border: 1px dashed #27d8d066; border-radius: 50%; inset: 13px; }
+.scan-orbit::after { inset: -14px; animation: orbit 5s linear infinite; }
+.scan-orbit span { position: absolute; width: 9px; height: 9px; background: var(--cyan); border-radius: 50%; top: -5px; box-shadow: 0 0 20px var(--cyan); }
+.scan-orbit b { font: 600 26px var(--display); color: var(--cyan); }
+.scan-progress { height: 3px; background: #3b4750; margin: 34px 0 14px; overflow: hidden; }
+.scan-progress i { display: block; height: 100%; width: 35%; background: var(--cyan); animation: scan-progress 2.1s ease-in-out infinite; }
+.scan-terminal code { font: 9px var(--mono); color: #7f8e96; letter-spacing: .12em; }
+@keyframes orbit { to { transform: rotate(360deg); } }
+@keyframes scan-progress { 0% { transform: translateX(-110%); } 50% { width: 60%; } 100% { transform: translateX(290%); } }
