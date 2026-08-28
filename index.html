@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="DEVTREE turns verified GitHub code into a living skill tree." />
+    <title>DEVTREE — Show me the code.</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111820'/%3E%3Cpath d='M16 18h13c11 0 18 5 18 14S40 46 29 46H16V18Zm11 20c6 0 9-2 9-6s-3-6-9-6v12Z' fill='%2327d8d0'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="noise" aria-hidden="true"></div>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="DEVTREE home"><span class="brand-mark">D/</span> DEVTREE</a>
+      <div class="scan-state"><span class="pulse"></span> CODE INDEXED <span class="muted">2M AGO</span></div>
+      <button class="avatar" aria-label="Open profile">LC</button>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">DEVELOPER PASSPORT / LIAM CHEN</p>
+          <h1>Your code becomes<br>your <em>skill tree.</em></h1>
+          <p class="lede">No self-reported skills. No vanity metrics.<br>Every level is verified by the code you ship.</p>
+          <div class="hero-actions">
+            <button class="primary-btn" data-toast="GitHub sync started">SYNC GITHUB <span>↗</span></button>
+            <button class="text-btn" id="explainBtn">HOW SCORING WORKS <span>→</span></button>
+          </div>
+        </div>
+
+        <div class="passport-card" aria-label="Developer passport">
+          <div class="passport-head">
+            <div><span class="tiny">VERIFIED DEVELOPER</span><strong>LIAM<br>CHEN</strong></div>
+            <div class="passport-seal">31<span>LV</span></div>
+          </div>
+          <div class="role">AI BACKEND ENGINEER</div>
+          <div class="xp-label"><span>8,420 XP</span><span>9,000</span></div>
+          <div class="xp"><i style="width: 86%"></i></div>
+          <div class="passport-stats">
+            <div><span>TOP SKILL</span><b>PYTHON 92</b></div>
+            <div><span>REPOSITORIES</span><b>12 VERIFIED</b></div>
+          </div>
+          <div class="fingerprint" aria-hidden="true">⌁⌁⌁<br>⌁◉⌁<br>⌁⌁⌁</div>
+          <div class="verified"><span>◆</span> VERIFIED BY CODE</div>
+        </div>
+      </section>
+
+      <section class="workspace" id="tree">
+        <div class="section-heading">
+          <div><p class="eyebrow">SKILL GRAPH / LIVE</p><h2>What your code proves.</h2></div>
+          <div class="legend"><span><i class="dot verified-dot"></i> VERIFIED</span><span><i class="dot partial-dot"></i> EMERGING</span><span><i class="dot fog-dot"></i> UNDISCOVERED</span></div>
+        </div>
+
+        <div class="tree-panel">
+          <div class="tree-toolbar">
+            <button class="active" data-filter="all">ALL DOMAINS</button><button data-filter="backend">BACKEND</button><button data-filter="ai">AI ENGINEERING</button>
+            <span class="tree-count">14 / 32 NODES DISCOVERED</span>
+          </div>
+          <div class="skill-map">
+            <svg class="links" viewBox="0 0 1000 570" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M500 90 L500 175 M500 175 L260 260 M500 175 L500 260 M500 175 L740 260 M260 320 L170 410 M260 320 L350 410 M500 320 L500 410 M740 320 L650 410 M740 320 L830 410"/>
+            </svg>
+            <button class="skill-node root" data-skill="python" data-domain="backend" style="--x:50%;--y:11%"><span class="node-ring"><b>92</b><small>LV.9</small></span><strong>PYTHON</strong><small>8 EVIDENCE</small></button>
+            <button class="skill-node" data-skill="fastapi" data-domain="backend" style="--x:26%;--y:45%"><span class="node-ring"><b>84</b><small>LV.8</small></span><strong>FASTAPI</strong><small>6 EVIDENCE</small></button>
+            <button class="skill-node" data-skill="api" data-domain="backend" style="--x:50%;--y:45%"><span class="node-ring"><b>82</b><small>LV.8</small></span><strong>API DESIGN</strong><small>5 EVIDENCE</small></button>
+            <button class="skill-node emerging" data-skill="llm" data-domain="ai" style="--x:74%;--y:45%"><span class="node-ring"><b>68</b><small>LV.6</small></span><strong>LLM</strong><small>4 EVIDENCE</small></button>
+            <button class="skill-node emerging small" data-skill="testing" data-domain="backend" style="--x:17%;--y:77%"><span class="node-ring"><b>28</b><small>LV.2</small></span><strong>TESTING</strong><small>1 EVIDENCE</small></button>
+            <button class="skill-node small" data-skill="database" data-domain="backend" style="--x:35%;--y:77%"><span class="node-ring"><b>76</b><small>LV.7</small></span><strong>DATABASES</strong><small>4 EVIDENCE</small></button>
+            <button class="skill-node emerging small" data-skill="rag" data-domain="ai" style="--x:50%;--y:77%"><span class="node-ring"><b>54</b><small>LV.5</small></span><strong>RAG</strong><small>3 EVIDENCE</small></button>
+            <button class="skill-node emerging small" data-skill="agents" data-domain="ai" style="--x:65%;--y:77%"><span class="node-ring"><b>41</b><small>LV.4</small></span><strong>AGENTS</strong><small>2 EVIDENCE</small></button>
+            <button class="skill-node locked small" data-skill="evaluation" data-domain="ai" style="--x:83%;--y:77%"><span class="node-ring"><b>?</b><small>LOCKED</small></span><strong>EVALUATION</strong><small>NO SIGNAL</small></button>
+            <div class="fog fog-left"><span>???</span></div><div class="fog fog-right"><span>???</span></div>
+          </div>
+          <p class="map-hint">SELECT A NODE TO INSPECT ITS CODE EVIDENCE</p>
+        </div>
+      </section>
+
+      <section class="quest-section">
+        <div class="quest-label"><span>NEW QUEST UNLOCKED</span><i></i></div>
+        <div class="quest-card">
+          <div class="quest-icon">⚔</div>
+          <div class="quest-main">
+            <p class="eyebrow amber">GROWTH OPPORTUNITY / TESTING</p>
+            <h2>The Testing Dungeon</h2>
+            <p>Your FastAPI foundations are strong. Your test coverage isn't. Add a reliable safety net to <b>DustGuard</b>.</p>
+            <div class="objectives">
+              <label><input type="checkbox"><span>Configure pytest</span><em>+60 XP</em></label>
+              <label><input type="checkbox"><span>Add API integration tests</span><em>+100 XP</em></label>
+              <label><input type="checkbox"><span>Mock LLM responses</span><em>+80 XP</em></label>
+              <label><input type="checkbox"><span>Reach 80% module coverage</span><em>+80 XP</em></label>
+            </div>
+          </div>
+          <aside class="reward">
+            <span>ESTIMATED REWARD</span><strong>+320 <small>XP</small></strong>
+            <div>TESTING <b>LV.2 → LV.4</b></div>
+            <button data-toast="Quest accepted — check your repository">ACCEPT QUEST <span>→</span></button>
+            <small>Final reward depends on code verification.</small>
+          </aside>
+        </div>
+      </section>
+
+      <section class="boss-section">
+        <div class="boss-copy">
+          <p class="eyebrow">CAREER BOSS / TARGET ROLE</p>
+          <h2>AI Engineer <span>LV.50</span></h2>
+          <p>You're <b>63% ready.</b> Close the evidence gaps that matter most.</p>
+          <button class="primary-btn" data-toast="Your 12-week quest line is ready">GENERATE QUEST LINE <span>→</span></button>
+        </div>
+        <div class="boss-bars">
+          <div class="bar-head"><span>SKILL</span><span>YOU</span><span>TARGET</span></div>
+          <div class="bar-row"><b>Python</b><i><u style="width:92%"></u></i><i><u style="width:90%"></u></i></div>
+          <div class="bar-row"><b>LLM</b><i><u style="width:68%"></u></i><i><u style="width:92%"></u></i></div>
+          <div class="bar-row"><b>RAG</b><i><u style="width:54%"></u></i><i><u style="width:86%"></u></i></div>
+          <div class="bar-row"><b>Agents</b><i><u style="width:41%"></u></i><i><u style="width:80%"></u></i></div>
+          <div class="bar-row gap"><b>Evaluation</b><i><u style="width:22%"></u></i><i><u style="width:78%"></u></i></div>
+          <div class="bar-row gap"><b>MLOps</b><i><u style="width:18%"></u></i><i><u style="width:70%"></u></i></div>
+        </div>
+      </section>
+    </main>
+
+    <footer><a class="brand" href="#"><span class="brand-mark">D/</span> DEVTREE</a><p>SKILLS ARE CLAIMS. CODE IS EVIDENCE.</p><span>© 2026 / BUILD 0.1</span></footer>
+
+    <div class="drawer-backdrop" id="drawerBackdrop"></div>
+    <aside class="evidence-drawer" id="evidenceDrawer" aria-hidden="true">
+      <button class="drawer-close" id="drawerClose" aria-label="Close evidence">×</button>
+      <p class="eyebrow">VERIFIED SKILL / BACKEND</p>
+      <div class="drawer-title"><div><h2 id="skillTitle">FASTAPI</h2><span>LAST VERIFIED 2M AGO</span></div><div class="level"><b id="skillLevel">8</b><span>LEVEL</span></div></div>
+      <div class="confidence"><span>AI CONFIDENCE</span><b id="skillConfidence">94%</b><i><u id="confidenceBar" style="width:94%"></u></i></div>
+      <h3>Why am I Level <span id="whyLevel">8</span>?</h3>
+      <p id="skillReason">Your repositories show repeated production use of async APIs, dependency injection, middleware, authentication and streaming responses.</p>
+      <div class="capabilities" id="capabilities"></div>
+      <div class="evidence-head"><h3>Code evidence</h3><span id="evidenceCount">06 SIGNALS</span></div>
+      <div id="evidenceList"></div>
+      <div class="next-level"><span>NEXT LEVEL</span><p id="nextLevel">Add integration tests and production observability to reach Level 9.</p></div>
+    </aside>
+    <div class="modal" id="scoreModal" aria-hidden="true"><div><button id="modalClose">×</button><p class="eyebrow">SCORING PROTOCOL</p><h2>Levels are earned,<br>never selected.</h2><p>DEVTREE reads implementation patterns across your repositories, weighs complexity and repetition, then links every conclusion to inspectable code. Missing GitHub evidence is shown as unknown—not incompetence.</p><ol><li><b>01</b> Code is indexed without storing secrets.</li><li><b>02</b> Capabilities are extracted with file-level citations.</li><li><b>03</b> Evidence is scored for depth, repetition and recency.</li></ol></div></div>
+    <div class="toast" id="toast"><span>◆</span><b></b></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
