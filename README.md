@@ -73,6 +73,8 @@ docker compose up --build -d
 
 Open `http://localhost:4317`. The container calls the host model through `http://host.docker.internal:11434`. To use another local model, set `OLLAMA_MODEL` before starting Compose. The `/api/health` response reports whether the configured model is reachable.
 
+Custom OpenAI-compatible endpoints are denied by default. Add only trusted hostnames to the server-side allowlist, for example `AI_ALLOWED_HOSTS=models.example.com`. Ollama is limited to local hosts unless explicitly allowlisted.
+
 The analysis reports four real stages: repository indexing, evidence extraction, local AI review, and skill scoring. Ollama reviews only selected snippets and may confirm or lower a rule score, never raise it. If Ollama is unavailable, analysis continues safely with deterministic scoring.
 
 Evidence V2 treats imports and configuration as supporting signals rather than proof of mastery, discounts test evidence for production skills, folds duplicate matches within one repository, and pins citations to the scanned commit. Ollama may confirm or lower the deterministic level; it cannot raise it.

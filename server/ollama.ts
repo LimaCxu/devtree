@@ -4,6 +4,14 @@ const DEFAULT_URL = 'http://127.0.0.1:11434';
 const DEFAULT_MODEL = 'qwen3.6:latest';
 
 export interface AiRuntimeSettings { provider:AiProvider; baseUrl:string; model:string; apiKey?:string }
+const LOCAL_AI_HOSTS=new Set(['localhost','127.0.0.1','::1','host.docker.internal']);
+export function assertSafeAiEndpoint(provider:AiProvider,baseUrl:string,extraHosts=process.env.AI_ALLOWED_HOSTS||''):string{
+  const url=new URL(baseUrl);const hostname=url.hostname.toLowerCase();const allowed=new Set(extraHosts.split(',').map(host=>host.trim().toLowerCase()).filter(Boolean));
+  if(url.username||url.password)throw new Error('AI Base URL must not contain credentials.');
+  if(provider==='ollama'){if(!['http:','https:'].includes(url.protocol))throw new Error('Ollama requires an HTTP or HTTPS Base URL.');if(!LOCAL_AI_HOSTS.has(hostname)&&!allowed.has(hostname))throw new Error(`AI host ${hostname} is not allowed. Add it to AI_ALLOWED_HOSTS on the server.`)}
+  else{if(url.protocol!=='https:')throw new Error('Cloud AI providers require HTTPS.');if(hostname!=='api.openai.com'&&!allowed.has(hostname))throw new Error(`AI host ${hostname} is not allowed. Add it to AI_ALLOWED_HOSTS on the server.`)}
+  return url.toString().replace(/\/$/,'');
+}
 function config(override?:AiRuntimeSettings) {
   return {
     provider:override?.provider||'ollama',
@@ -29,8 +37,7 @@ export async function ollamaStatus() {
 }
 
 export async function testAiProvider(settings:AiRuntimeSettings):Promise<{available:boolean;model:string;reason?:string}>{
-  const current=config(settings);
-  try{const response=await fetch(`${current.url}${current.provider==='ollama'?'/api/tags':'/models'}`,{headers:current.apiKey?{Authorization:`Bearer ${current.apiKey}`}:{},signal:AbortSignal.timeout(8000)});if(!response.ok)return{available:false,model:current.model,reason:`HTTP ${response.status}`};return{available:true,model:current.model}}catch(error){return{available:false,model:current.model,reason:error instanceof Error?error.message:'Connection failed'}}
+  try{const safe={...settings,baseUrl:assertSafeAiEndpoint(settings.provider,settings.baseUrl)};const current=config(safe);const response=await fetch(`${current.url}${current.provider==='ollama'?'/api/tags':'/models'}`,{headers:current.apiKey?{Authorization:`Bearer ${current.apiKey}`}:{},signal:AbortSignal.timeout(8000)});if(!response.ok)return{available:false,model:current.model,reason:`HTTP ${response.status}`};const data=await response.json() as {models?:Array<{name?:string;model?:string}>;data?:Array<{id?:string}>};const models=current.provider==='ollama'?(data.models||[]).flatMap(item=>[item.name,item.model].filter((value):value is string=>Boolean(value))):(data.data||[]).flatMap(item=>item.id?[item.id]:[]);return models.includes(current.model)?{available:true,model:current.model}:{available:false,model:current.model,reason:`Model ${current.model} was not found.`}}catch(error){return{available:false,model:settings.model,reason:error instanceof Error?error.message:'Connection failed'}}
 }
 
 const schema = {
@@ -66,7 +73,8 @@ function compactEvidence(skills: Record<SkillKey, Skill>) {
 
 interface ReviewItem { skill: SkillKey; recommendedLevel: number; confidenceAdjustment: number; explanation: string; missingEvidence: string[] }
 export async function reviewWithOllama(skills: Record<SkillKey, Skill>,override?:AiRuntimeSettings): Promise<{skills:Record<SkillKey,Skill>;review:{used:boolean;model:string;reason?:string;reviewedAt?:string}}> {
-  const current = config(override);
+  let current:ReturnType<typeof config>;
+  try{current=config(override?{...override,baseUrl:assertSafeAiEndpoint(override.provider,override.baseUrl)}:undefined)}catch(error){return{skills,review:{used:false,model:override?.model||DEFAULT_MODEL,reason:error instanceof Error?error.message:'Unsafe AI endpoint'}}}
   if (!current.enabled) return { skills, review: { used: false, reason: 'disabled', model: current.model } };
   const status = override?await testAiProvider(override):await ollamaStatus();
   if (!status.available) return { skills, review: { used: false, reason: status.reason || 'model unavailable', model: current.model } };

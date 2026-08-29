@@ -5,7 +5,7 @@ type SourceKind = Evidence['sourceKind'];
 interface SourceFile { repo:string; path:string; content:string; url:string; commitSha?:string; pushedAt?:string }
 interface SkillRule { title: string; base: RegExp; patterns: Array<[string, RegExp, number?]> }
 interface GitHubUser { login:string; name?:string|null; avatar_url?:string; bio?:string|null }
-interface GitHubRepo { name:string; full_name:string; html_url:string; language:string|null; pushed_at:string; default_branch:string; fork:boolean; archived:boolean }
+interface GitHubRepo { name:string; full_name:string; html_url:string; language:string|null; pushed_at:string; default_branch:string; fork:boolean; archived:boolean; private:boolean }
 interface GitTreeItem { type:string; size:number; path:string }
 interface GitTree { tree:GitTreeItem[] }
 interface GitCommit { sha:string }
@@ -156,7 +156,7 @@ export async function analyzeGitHub(token: string, onProgress: (stage: ScanStage
       for (const file of candidates) {
         try {
           const raw = await fetch(`https://raw.githubusercontent.com/${repo.full_name}/${repo.default_branch}/${file.path}`, { headers: { Authorization: `Bearer ${token}`, 'User-Agent': 'DEVTREE' } });
-          if (raw.ok) files.push({ repo: repo.name, path: file.path, content: (await raw.text()).slice(0, 120_000), url: `${repo.html_url}/blob/${commit.sha}/${file.path}`, commitSha:commit.sha, pushedAt:repo.pushed_at });
+          if (raw.ok) files.push({ repo: repo.full_name, path: file.path, content: (await raw.text()).slice(0, 120_000), url: `${repo.html_url}/blob/${commit.sha}/${file.path}`, commitSha:commit.sha, pushedAt:repo.pushed_at });
         } catch { /* A single unreadable file must not abort a scan. */ }
       }
     } catch { /* Empty or unusually large repositories can be skipped safely. */ }
@@ -169,5 +169,5 @@ export async function analyzeGitHub(token: string, onProgress: (stage: ScanStage
   await onProgress('scoring', 94);
   const skills = Object.fromEntries(Object.entries(reviewed.skills).map(([key, skill]) => [key, { ...skill, evidence: skill.evidence.map(({ _snippet, ...evidence }) => evidence) }])) as Record<SkillKey, Skill>;
   const overallLevel = Math.max(1, Math.round(Object.values(skills).reduce((sum, skill) => sum + skill.level, 0) / 2));
-  return { profile: { login: user.login, name: user.name || user.login, avatarUrl: user.avatar_url, bio: user.bio, repositoryCount: repos.length, overallLevel }, scannedAt: new Date().toISOString(), filesInspected: files.length, repositories: repos.map(repo => ({ name: repo.name, fullName:repo.full_name, url: repo.html_url, language: repo.language, pushedAt: repo.pushed_at, defaultBranch:repo.default_branch, headSha:repoHeads.get(repo.full_name) })), skills, aiReview: reviewed.review } as AnalysisResult;
+  return { profile: { login: user.login, name: user.name || user.login, avatarUrl: user.avatar_url, bio: user.bio, repositoryCount: repos.length, overallLevel }, scannedAt: new Date().toISOString(), filesInspected: files.length, repositories: repos.map(repo => ({ name: repo.name, fullName:repo.full_name, url: repo.html_url, language: repo.language, pushedAt: repo.pushed_at, defaultBranch:repo.default_branch, headSha:repoHeads.get(repo.full_name),private:repo.private })), skills, aiReview: reviewed.review } as AnalysisResult;
 }

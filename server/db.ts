@@ -20,12 +20,14 @@ export function initDb() {
     CREATE TABLE IF NOT EXISTS career_targets (github_id bigint PRIMARY KEY REFERENCES users(github_id) ON DELETE CASCADE, role text NOT NULL, job_description text, result jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());
     CREATE TABLE IF NOT EXISTS webhook_deliveries (delivery_id text PRIMARY KEY, event text NOT NULL, received_at timestamptz NOT NULL DEFAULT now());
     CREATE TABLE IF NOT EXISTS ai_settings (github_id bigint PRIMARY KEY REFERENCES users(github_id) ON DELETE CASCADE, provider text NOT NULL DEFAULT 'ollama', base_url text NOT NULL, model text NOT NULL, api_key_enc text, updated_at timestamptz NOT NULL DEFAULT now());
+    ALTER TABLE scans ADD COLUMN IF NOT EXISTS stage text NOT NULL DEFAULT 'queued';
     CREATE INDEX IF NOT EXISTS scans_user_created_idx ON scans(github_id, created_at DESC);
+    WITH ranked AS (SELECT id,row_number() OVER(PARTITION BY github_id ORDER BY created_at DESC) AS position FROM scans WHERE status IN ('queued','running')) UPDATE scans SET status='failed',stage='failed',error='Superseded by a newer active scan.',updated_at=now() WHERE id IN (SELECT id FROM ranked WHERE position>1);
+    CREATE UNIQUE INDEX IF NOT EXISTS scans_one_active_per_user_idx ON scans(github_id) WHERE status IN ('queued','running');
     CREATE INDEX IF NOT EXISTS quests_user_status_idx ON quests(github_id, status, accepted_at DESC);
     ALTER TABLE users ADD COLUMN IF NOT EXISTS refresh_enc text;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS token_expires_at timestamptz;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS xp integer NOT NULL DEFAULT 0;
-    ALTER TABLE scans ADD COLUMN IF NOT EXISTS stage text NOT NULL DEFAULT 'queued';
   `);
   return ready;
 }
@@ -41,7 +43,14 @@ export async function createSession(githubId:GithubId) { await initDb(); const i
 async function usableToken(row:TokenRow) { if (!row.token_expires_at || new Date(row.token_expires_at).getTime()>Date.now()+300000) return decrypt(row.token_enc); if (!row.refresh_enc) throw new Error('GitHub access token expired; reconnect GitHub.'); const response=await fetch('https://github.com/login/oauth/access_token',{method:'POST',headers:{accept:'application/json','content-type':'application/json'},body:JSON.stringify({client_id:process.env.GITHUB_CLIENT_ID,client_secret:process.env.GITHUB_CLIENT_SECRET,grant_type:'refresh_token',refresh_token:decrypt(row.refresh_enc)})}); const data=await response.json() as TokenData; if(!response.ok||!data.access_token)throw new Error('GitHub token refresh failed; reconnect GitHub.'); const expiresAt=data.expires_in?new Date(Date.now()+data.expires_in*1000):null; await pool.query('UPDATE users SET token_enc=$1,refresh_enc=$2,token_expires_at=$3,updated_at=now() WHERE github_id=$4',[encrypt(data.access_token),data.refresh_token?encrypt(data.refresh_token):row.refresh_enc,expiresAt,row.github_id]); return data.access_token; }
 export async function getSession(id?:string) { if (!id) return null; await initDb(); const { rows } = await pool.query(`SELECT s.github_id,u.login,u.name,u.avatar_url,u.xp,u.token_enc,u.refresh_enc,u.token_expires_at FROM sessions s JOIN users u USING(github_id) WHERE s.id=$1 AND s.expires_at>now()`, [id]); if (!rows[0]) return null; return { githubId: rows[0].github_id, token: await usableToken(rows[0] as TokenRow), user: { login: rows[0].login, name: rows[0].name, avatarUrl: rows[0].avatar_url, xp: rows[0].xp } }; }
 export async function deleteSession(id?:string) { await initDb(); if(id)await pool.query('DELETE FROM sessions WHERE id=$1', [id]); }
-export async function createScan(githubId:GithubId) { await initDb(); const id = crypto.randomUUID(); await pool.query('INSERT INTO scans(id,github_id,status,stage) VALUES($1,$2,$3,$4)', [id, githubId, 'queued', 'queued']); return id; }
+export async function createScan(githubId:GithubId,minimumIntervalSeconds=0):Promise<{id:string;created:boolean;rateLimited:boolean}>{
+  await initDb();
+  const active=await pool.query("SELECT id FROM scans WHERE github_id=$1 AND status IN ('queued','running') ORDER BY created_at DESC LIMIT 1",[githubId]);
+  if(active.rows[0])return{id:active.rows[0].id,created:false,rateLimited:false};
+  if(minimumIntervalSeconds>0){const recent=await pool.query("SELECT id FROM scans WHERE github_id=$1 AND created_at > now() - make_interval(secs => $2::int) ORDER BY created_at DESC LIMIT 1",[githubId,minimumIntervalSeconds]);if(recent.rows[0])return{id:recent.rows[0].id,created:false,rateLimited:true}}
+  const id=crypto.randomUUID();
+  try{await pool.query('INSERT INTO scans(id,github_id,status,stage) VALUES($1,$2,$3,$4)',[id,githubId,'queued','queued']);return{id,created:true,rateLimited:false}}catch(error){if(error&&typeof error==='object'&&'code' in error&&error.code==='23505'){const winner=await pool.query("SELECT id FROM scans WHERE github_id=$1 AND status IN ('queued','running') ORDER BY created_at DESC LIMIT 1",[githubId]);if(winner.rows[0])return{id:winner.rows[0].id,created:false,rateLimited:false}}throw error}
+}
 const scanColumns = 'id,status,stage,progress,result,error,created_at AS "createdAt",updated_at AS "updatedAt"';
 export async function getScan(id:string, githubId:GithubId) { await initDb(); const { rows } = await pool.query(`SELECT ${scanColumns} FROM scans WHERE id=$1 AND github_id=$2`, [id, githubId]); return rows[0] || null; }
 export async function getLatestScan(githubId:GithubId) { await initDb(); const { rows } = await pool.query(`SELECT ${scanColumns} FROM scans WHERE github_id=$1 ORDER BY created_at DESC LIMIT 1`, [githubId]); return rows[0] || null; }

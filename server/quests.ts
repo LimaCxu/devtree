@@ -30,7 +30,7 @@ export async function verifyAcceptedQuests(githubId:string|number,token:string,r
     if(!skill)continue;
     const objectives=(quest.objectives as QuestObjective[]).map(objective=>{
       if(objective.completed)return objective;
-      const evidence=skill.evidence.find(item=>item.capability===objective.capability&&item.repository===repository.name&&changed.has(item.path)&&item.strength>=60);
+      const evidence=skill.evidence.find(item=>item.capability===objective.capability&&(item.repository===repository.fullName||item.repository===repository.name)&&changed.has(item.path)&&item.strength>=60);
       return evidence?{...objective,completed:true,evidenceUrl:evidence.url}:objective;
     });
     if(objectives.every(item=>item.completed))await completeQuest(quest.id,objectives);

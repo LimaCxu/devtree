@@ -45,7 +45,7 @@ export interface AnalysisResult {
   profile: DeveloperProfile;
   scannedAt: string;
   filesInspected: number;
-  repositories: Array<{ name: string; fullName: string; url: string; language: string | null; pushedAt: string; defaultBranch: string; headSha?: string }>;
+  repositories: Array<{ name: string; fullName: string; url: string; language: string | null; pushedAt: string; defaultBranch: string; headSha?: string; private: boolean }>;
   skills: Record<SkillKey, Skill>;
   aiReview: { used: boolean; model: string; reason?: string; reviewedAt?: string };
 }

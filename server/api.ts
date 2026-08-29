@@ -1,23 +1,35 @@
 import crypto from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { ollamaStatus, testAiProvider } from './ollama.js';
+import { assertSafeAiEndpoint, ollamaStatus, testAiProvider } from './ollama.js';
 import { acceptedQuestsForRepository, consumeState, createScan, createSession, dbHealth, deleteSession, getAiRuntimeSettings, getAiSettings, getCareerTarget, getCurrentQuest, getLatestScan, getPassportSettings, getPublicPassport, getScan, getSession, registerWebhookDelivery, saveAiSettings, saveCareerTarget, saveQuest, saveState, saveUser, setPassportPublic } from './db.js';
 import { enqueueScan, queueHealth } from './queue.js';
 import { recommendQuest } from './quests.js';
 import { generateCareerTarget } from './career.js';
-import type { AiProvider, AnalysisResult, PublicPassport } from '../shared/types.js';
+import { buildPublicPassport } from './passport.js';
+import type { AiProvider, AnalysisResult } from '../shared/types.js';
 
 const COOKIE = 'devtree_session';
 
 function cookies(req: IncomingMessage): Record<string,string> { return Object.fromEntries((req.headers.cookie || '').split(';').filter(Boolean).map(part => part.trim().split('=').map(decodeURIComponent) as [string,string])); }
 function json(res: ServerResponse, status: number, data: unknown) { res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify(data)); }
 function redirect(res: ServerResponse, location: string, cookie?: string) { const headers: Record<string,string> = { location }; if (cookie) headers['set-cookie'] = cookie; res.writeHead(302, headers); res.end(); }
-function appUrl(req: IncomingMessage) { return process.env.APP_URL || `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`; }
+export function resolveAppUrl(req:IncomingMessage,configured=process.env.APP_URL){
+  if(configured?.trim()){
+    const value=new URL(configured.trim());
+    if(!['http:','https:'].includes(value.protocol)||value.username||value.password||value.pathname!=='/'||value.search||value.hash)throw new Error('APP_URL must be a valid HTTP(S) origin without credentials, path, query, or fragment.');
+    return value.origin;
+  }
+  const host=String(req.headers.host||'');
+  let hostname='';try{hostname=new URL(`http://${host}`).hostname.toLowerCase()}catch{throw new Error('APP_URL is required.')}
+  if(!['localhost','127.0.0.1','[::1]','::1'].includes(hostname))throw new Error('APP_URL must be configured for non-local requests.');
+  return `http://${host}`;
+}
+function appUrl(req:IncomingMessage){return resolveAppUrl(req)}
 function session(req: IncomingMessage) { return getSession(cookies(req)[COOKIE]); }
 async function rawBody(req:IncomingMessage):Promise<Buffer>{const chunks:Buffer[]=[];let size=0;for await(const chunk of req){const value=Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk);size+=value.length;if(size>2_000_000)throw new Error('Request body exceeds the 2 MB limit.');chunks.push(value)}return Buffer.concat(chunks)}
 async function jsonBody<T>(req:IncomingMessage):Promise<T>{const body=await rawBody(req);return JSON.parse(body.toString('utf8')||'{}') as T}
 export function verifyWebhookSignature(body:Buffer,signature:string|undefined,secret=process.env.GITHUB_WEBHOOK_SECRET):boolean{if(!secret||!signature)return false;const expected=`sha256=${crypto.createHmac('sha256',secret).update(body).digest('hex')}`;return expected.length===signature.length&&crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(signature))}
-function aiInput(body:{provider?:unknown;baseUrl?:unknown;model?:unknown;apiKey?:unknown}){if(body.provider!=='ollama'&&body.provider!=='openai-compatible')throw new Error('Choose a supported AI provider.');if(typeof body.baseUrl!=='string'||typeof body.model!=='string'||typeof body.apiKey!=='string')throw new Error('AI settings are incomplete.');const url=new URL(body.baseUrl);if(!['http:','https:'].includes(url.protocol)||body.baseUrl.length>500||!body.model.trim()||body.model.length>200||body.apiKey.length>1000)throw new Error('AI settings contain an invalid URL, model, or key.');return{provider:body.provider as AiProvider,baseUrl:url.toString().replace(/\/$/,''),model:body.model.trim(),apiKey:body.apiKey.trim()||undefined}}
+function aiInput(body:{provider?:unknown;baseUrl?:unknown;model?:unknown;apiKey?:unknown}){if(body.provider!=='ollama'&&body.provider!=='openai-compatible')throw new Error('Choose a supported AI provider.');if(typeof body.baseUrl!=='string'||typeof body.model!=='string'||typeof body.apiKey!=='string')throw new Error('AI settings are incomplete.');if(body.baseUrl.length>500||!body.model.trim()||body.model.length>200||body.apiKey.length>1000)throw new Error('AI settings contain an invalid URL, model, or key.');return{provider:body.provider as AiProvider,baseUrl:assertSafeAiEndpoint(body.provider,body.baseUrl),model:body.model.trim(),apiKey:body.apiKey.trim()||undefined}}
 
 export async function handleApiRequest(req: IncomingMessage, res: ServerResponse) {
   const url = new URL(req.url||'/', appUrl(req));
@@ -25,7 +37,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
     const body=await rawBody(req);if(!verifyWebhookSignature(body,req.headers['x-hub-signature-256'] as string|undefined))return json(res,401,{error:'Invalid webhook signature.'});
     const event=String(req.headers['x-github-event']||'unknown');const delivery=String(req.headers['x-github-delivery']||'');if(!delivery)return json(res,400,{error:'GitHub delivery ID is missing.'});if(!await registerWebhookDelivery(delivery,event))return json(res,202,{ok:true,duplicate:true});if(event!=='push')return json(res,202,{ok:true,ignored:true});
     const payload=JSON.parse(body.toString('utf8')) as {repository?:{full_name?:string}};const repository=payload.repository?.full_name;if(!repository)return json(res,400,{error:'Repository is missing.'});
-    const quests=await acceptedQuestsForRepository(repository);for(const githubId of new Set(quests.map(quest=>quest.githubId))){const id=await createScan(githubId);await enqueueScan(id)}return json(res,202,{ok:true,scans:new Set(quests.map(quest=>quest.githubId)).size});
+    const quests=await acceptedQuestsForRepository(repository);let scans=0;for(const githubId of new Set(quests.map(quest=>quest.githubId))){const scan=await createScan(githubId);if(scan.created){await enqueueScan(scan.id);scans++}}return json(res,202,{ok:true,scans});
   }
   if (url.pathname === '/api/health') { const [database,queue,ollama]=await Promise.all([dbHealth(),queueHealth(),ollamaStatus()]); return json(res, database&&queue?200:503, { ok: database&&queue, database, queue, oauthConfigured: Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET), ollama }); }
   if (url.pathname === '/api/auth/status') {
@@ -35,7 +47,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
   const publicPassportMatch=url.pathname.match(/^\/api\/passports\/([A-Za-z0-9-]+)$/);
   if(publicPassportMatch&&req.method==='GET'){
     const row=await getPublicPassport(publicPassportMatch[1]);if(!row)return json(res,404,{error:'This Developer Passport is private or unavailable.'});
-    const result=row.result as AnalysisResult;const passport:PublicPassport={public:true,profile:{...result.profile,xp:row.xp},scannedAt:result.scannedAt,skills:result.skills,repositories:result.repositories.map(repository=>({name:repository.name,url:repository.url,language:repository.language})),aiVerified:result.aiReview.used};return json(res,200,passport);
+    return json(res,200,buildPublicPassport(row.result as AnalysisResult,row.xp));
   }
   if (url.pathname === '/api/auth/github') {
     console.log(`[auth] GitHub authorization started at ${new Date().toISOString()}`);
@@ -56,7 +68,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
   if (url.pathname === '/api/auth/logout' && req.method === 'POST') { const id = cookies(req)[COOKIE]; await deleteSession(id); res.setHeader('set-cookie', `${COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`); return json(res, 200, { ok: true }); }
   if (url.pathname === '/api/analyze' && req.method === 'POST') {
     const current = await session(req); if (!current) return json(res, 401, { error: 'Connect GitHub before scanning repositories.' });
-    const id = await createScan(current.githubId); await enqueueScan(id); return json(res, 202, { id, status: 'queued', stage: 'queued', progress: 0, result: null, error: null });
+    const scan=await createScan(current.githubId,10);if(scan.rateLimited)return json(res,429,{error:'Please wait 10 seconds before starting another scan.'});if(scan.created)await enqueueScan(scan.id);const record=await getScan(scan.id,current.githubId);return json(res,202,record);
   }
   if (url.pathname === '/api/scans/latest' && req.method === 'GET') { const current=await session(req); if(!current)return json(res,401,{error:'Authentication required.'}); return json(res,200,await getLatestScan(current.githubId)); }
   if(url.pathname==='/api/passport/settings'&&req.method==='GET'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});return json(res,200,{...await getPassportSettings(current.githubId),login:current.user.login})}
