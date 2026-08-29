@@ -11,6 +11,9 @@ export interface Evidence {
   line: number;
   summary: string;
   url: string;
+  strength: number;
+  sourceKind: 'production' | 'test' | 'config';
+  commitSha?: string;
   _snippet?: string;
 }
 
@@ -22,6 +25,7 @@ export interface Skill {
   capabilities: Array<[CapabilityState, string]>;
   caps?: Array<[CapabilityState, string]>;
   repositoryCount: number;
+  evidenceScore: number;
   evidence: Evidence[];
   reason: string;
   next: string;
@@ -40,7 +44,7 @@ export interface AnalysisResult {
   profile: DeveloperProfile;
   scannedAt: string;
   filesInspected: number;
-  repositories: Array<{ name: string; url: string; language: string | null; pushedAt: string }>;
+  repositories: Array<{ name: string; fullName: string; url: string; language: string | null; pushedAt: string; defaultBranch: string; headSha?: string }>;
   skills: Record<SkillKey, Skill>;
   aiReview: { used: boolean; model: string; reason?: string; reviewedAt?: string };
 }
@@ -61,4 +65,20 @@ export interface AuthState {
   user: DeveloperProfile | null;
   oauthConfigured: boolean;
   unavailable?: boolean;
+}
+
+export type QuestStatus = 'proposed' | 'accepted' | 'completed';
+export interface QuestObjective { id: string; label: string; capability: string; xp: number; completed: boolean; evidenceUrl?: string }
+export interface Quest {
+  id?: string;
+  skillKey: SkillKey;
+  title: string;
+  description: string;
+  repositoryFullName: string;
+  baselineSha?: string;
+  rewardXp: number;
+  status: QuestStatus;
+  objectives: QuestObjective[];
+  acceptedAt?: string;
+  completedAt?: string;
 }

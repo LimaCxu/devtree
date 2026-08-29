@@ -1,4 +1,10 @@
 .passport-seal b { font: inherit; }
+.top-actions { justify-self: end; display: flex; align-items: center; gap: 10px; }
+.top-actions .avatar { justify-self: auto; }
+.language-toggle { width: 32px; height: 32px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: 500 10px var(--mono); cursor: pointer; transition: border-color .2s, background .2s; }
+.language-toggle:hover, .language-toggle:focus-visible { border-color: var(--cyan-dark); background: #27d8d012; outline: none; }
+html[lang="zh-CN"] body { letter-spacing: .005em; }
+html[lang="zh-CN"] .hero h1 { letter-spacing: -.045em; }
 .hero::before, .passport-card::before, .fog, .links { pointer-events: none; }
 .connection-status { margin-top: 22px; width: min(100%, 530px); border-top: 1px solid var(--line); padding: 13px 0; display: grid; grid-template-columns: 10px 1fr auto; gap: 11px; align-items: center; }
 .connection-dot { width: 7px; height: 7px; border-radius: 50%; background: #8b969c; }

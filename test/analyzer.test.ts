@@ -20,9 +20,9 @@ const files = [
 
 test('assigns levels only when code patterns are present', () => {
   const skills = scoreSkills(files);
-  assert.ok(skills.fastapi.level >= 5);
-  assert.ok(skills.testing.level >= 3);
-  assert.ok(skills.rag.level >= 4);
+  assert.ok(skills.fastapi.level >= 4);
+  assert.ok(skills.testing.level >= 1);
+  assert.ok(skills.rag.level >= 2);
   assert.equal(skills.evaluation.level, 0);
 });
 
@@ -32,6 +32,20 @@ test('attaches inspectable repository, file and line evidence', () => {
   assert.match(evidence.path, /chat\.py$/);
   assert.ok(evidence.line > 0);
   assert.match(evidence.url, /^https:\/\/github\.com\//);
+  assert.ok(evidence.strength >= 50);
+  assert.equal(evidence.sourceKind, 'production');
+});
+
+test('does not treat imports or production files as testing mastery', () => {
+  const skills = scoreSkills([{ repo:'ImportsOnly', path:'src/client.py', url:'https://github.com/example/imports', content:'import pytest\nfrom openai import OpenAI' }]);
+  assert.equal(skills.testing.level, 0);
+  assert.equal(skills.llm.level, 0);
+});
+
+test('deduplicates repeated capability evidence within one repository', () => {
+  const duplicate = files[0];
+  const skills = scoreSkills([duplicate, { ...duplicate, path:'api/routes/chat_copy.py' }]);
+  assert.ok(skills.fastapi.repositoryCount <= 1);
 });
 
 test('returns fog-of-war nodes when no evidence exists', () => {

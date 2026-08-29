@@ -1,3 +1,5 @@
+import type { Skill, SkillKey } from '../shared/types.js';
+
 const DEFAULT_URL = 'http://127.0.0.1:11434';
 const DEFAULT_MODEL = 'qwen3.6:latest';
 
@@ -33,7 +35,7 @@ const schema = {
         properties: {
           skill: { type: 'string' },
           recommendedLevel: { type: 'integer', minimum: 0, maximum: 10 },
-          confidenceAdjustment: { type: 'integer', minimum: -15, maximum: 10 },
+          confidenceAdjustment: { type: 'integer', minimum: -20, maximum: 0 },
           explanation: { type: 'string' },
           missingEvidence: { type: 'array', items: { type: 'string' } }
         },
@@ -50,7 +52,7 @@ function compactEvidence(skills: Record<SkillKey, Skill>) {
     ruleLevel: skill.level,
     verifiedCapabilities: skill.capabilities.filter(([state]) => state === '✓').map(([, name]) => name),
     missingCapabilities: skill.capabilities.filter(([state]) => state !== '✓').map(([, name]) => name),
-    evidence: skill.evidence.slice(0, 5).map(item => ({ repository: item.repository, path: item.path, line: item.line, capability: item.capability, code: item._snippet }))
+    evidence: skill.evidence.slice(0, 5).map(item => ({ repository: item.repository, path: item.path, line: item.line, capability: item.capability, strength: item.strength, sourceKind:item.sourceKind, code: item._snippet }))
   }));
 }
 
@@ -61,7 +63,7 @@ export async function reviewWithOllama(skills: Record<SkillKey, Skill>): Promise
   const status = await ollamaStatus();
   if (!status.available) return { skills, review: { used: false, reason: status.reason || 'model unavailable', model: current.model } };
 
-  const prompt = `You are DEVTREE's strict code-evidence reviewer. Review the evidence JSON below. A skill level is 0-10. Never infer a capability that is not visible in the supplied code. Never invent repositories, files, line numbers, or technologies. Boilerplate and isolated imports deserve low weight; repeated implementation across repositories deserves more weight. Keep the recommended level within 1 point of ruleLevel unless ruleLevel is 0, which must stay 0. Explanations must be one concise sentence and explicitly state what the code proves. Return only schema-valid JSON.\n\n${JSON.stringify(compactEvidence(skills))}`;
+  const prompt = `You are DEVTREE's adversarial code-evidence reviewer. The deterministic engine has proposed a maximum skill level. You may confirm or lower that level, never raise it. Never infer a capability that is not visible in the supplied code and never invent repositories, files, line numbers, or technologies. Imports, configuration mentions, boilerplate, tests of mocks, and repeated matches in one repository are not production mastery. Recommend a level from 0 through ruleLevel. confidenceAdjustment must be between -20 and 0. Explanations must be one concise sentence stating exactly what the supplied implementation proves. Return only schema-valid JSON.\n\n${JSON.stringify(compactEvidence(skills))}`;
   try {
     const response = await fetch(`${current.url}/api/chat`, {
       method: 'POST',
@@ -76,14 +78,14 @@ export async function reviewWithOllama(skills: Record<SkillKey, Skill>): Promise
     const reviewed = Object.fromEntries(Object.entries(skills).map(([key, skill]) => {
       const item = reviews.get(key as SkillKey);
       if (!item || skill.level === 0) return [key, skill];
-      const level = Math.max(skill.level - 1, Math.min(skill.level + 1, Number(item.recommendedLevel) || skill.level));
-      const confidence = Math.max(1, Math.min(99, skill.confidence + Math.max(-15, Math.min(10, Number(item.confidenceAdjustment) || 0))));
+      const recommendation = Number.isFinite(Number(item.recommendedLevel)) ? Number(item.recommendedLevel) : skill.level;
+      const level = Math.max(0, Math.min(skill.level, recommendation));
+      const confidence = Math.max(1, Math.min(skill.confidence, skill.confidence + Math.max(-20, Math.min(0, Number(item.confidenceAdjustment) || 0))));
       const missing = Array.isArray(item.missingEvidence) ? item.missingEvidence.filter(Boolean).slice(0, 2) : [];
-      return [key, { ...skill, level, score: level * 10, confidence, reason: item.explanation || skill.reason, next: missing.length ? `Add verifiable ${missing.join(' and ')} evidence to progress toward Level ${Math.min(10, level + 1)}.` : skill.next }];
+      return [key, { ...skill, level, confidence, reason: item.explanation || skill.reason, next: missing.length ? `Add verifiable ${missing.join(' and ')} evidence to progress toward Level ${Math.min(10, level + 1)}.` : skill.next }];
     })) as Record<SkillKey, Skill>;
     return { skills: reviewed, review: { used: true, model: current.model, reviewedAt: new Date().toISOString() } };
   } catch (error) {
     return { skills, review: { used: false, reason: error.message, model: current.model } };
   }
 }
-import type { Skill, SkillKey } from '../shared/types.js';

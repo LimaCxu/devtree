@@ -21,6 +21,9 @@ DEVTREE is an interactive product prototype for a code-verified developer passpo
 - Redis-backed asynchronous scan worker with durable job status
 - End-to-end TypeScript for browser, API, database, analyzer, and worker
 - Real scan stages, resumable progress, actionable failures, and retry controls
+- English/Chinese interface switching across static and live scan states
+- Evidence V2 scoring with source-kind weights, repository deduplication, commit-pinned citations, and adversarial Ollama review
+- Persistent quests with signed GitHub push webhooks and changed-file verification
 
 ## Run locally
 
@@ -57,7 +60,11 @@ docker compose up --build -d
 
 Open `http://localhost:4317`. The container calls the host model through `http://host.docker.internal:11434`. To use another local model, set `OLLAMA_MODEL` before starting Compose. The `/api/health` response reports whether the configured model is reachable.
 
-The analysis reports four real stages: repository indexing, evidence extraction, local AI review, and skill scoring. Ollama reviews only selected snippets and may adjust a rule score by at most one level. If Ollama is unavailable, analysis continues safely with deterministic scoring.
+The analysis reports four real stages: repository indexing, evidence extraction, local AI review, and skill scoring. Ollama reviews only selected snippets and may confirm or lower a rule score, never raise it. If Ollama is unavailable, analysis continues safely with deterministic scoring.
+
+Evidence V2 treats imports and configuration as supporting signals rather than proof of mastery, discounts test evidence for production skills, folds duplicate matches within one repository, and pins citations to the scanned commit. Ollama may confirm or lower the deterministic level; it cannot raise it.
+
+To enable push-driven Quest verification, set `GITHUB_WEBHOOK_SECRET` and configure the repository webhook to send `push` events to `<APP_URL>/api/webhooks/github` with the same secret. Localhost needs a secure tunnel before GitHub can deliver webhooks.
 
 ## Architecture
 

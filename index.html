@@ -16,53 +16,53 @@
     <div class="noise" aria-hidden="true"></div>
     <header class="topbar">
       <a class="brand" href="#" aria-label="DEVTREE home"><span class="brand-mark">D/</span> DEVTREE</a>
-      <div class="scan-state"><span class="pulse"></span> <span id="scanState">DEMO INDEX</span> <span class="muted" id="scanTime">READY</span></div>
-      <button class="avatar" id="profileAvatar" aria-label="Open profile">LC</button>
+      <div class="scan-state"><span class="pulse"></span> <span id="scanState" data-i18n="status.demo">DEMO INDEX</span> <span class="muted" id="scanTime" data-i18n="status.ready">READY</span></div>
+      <div class="top-actions"><button class="language-toggle" id="languageToggle" type="button" aria-label="Switch to Chinese">中</button><button class="avatar" id="profileAvatar" data-i18n-aria="nav.profile" aria-label="Open profile">LC</button></div>
     </header>
 
     <main>
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">DEVELOPER PASSPORT / LIAM CHEN</p>
-          <h1>Your code becomes<br>your <em>skill tree.</em></h1>
-          <p class="lede">No self-reported skills. No vanity metrics.<br>Every level is verified by the code you ship.</p>
+          <p class="eyebrow" data-i18n="hero.eyebrow">DEVELOPER PASSPORT / VERIFIED BY CODE</p>
+          <h1><span data-i18n="hero.line1">Your code becomes</span><br><em data-i18n="hero.line2">your skill tree.</em></h1>
+          <p class="lede"><span data-i18n="hero.lede1">No self-reported skills. No vanity metrics.</span><br><span data-i18n="hero.lede2">Every level is verified by the code you ship.</span></p>
           <div class="hero-actions">
-            <button class="primary-btn" id="syncGithub" type="button">CONNECT GITHUB <span>↗</span></button>
-            <button class="text-btn" id="explainBtn">HOW SCORING WORKS <span>→</span></button>
+            <button class="primary-btn" id="syncGithub" type="button"><span data-i18n="action.connect">CONNECT GITHUB</span> <span>↗</span></button>
+            <button class="text-btn" id="explainBtn"><span data-i18n="action.scoring">HOW SCORING WORKS</span> <span>→</span></button>
           </div>
           <div class="connection-status" id="connectionStatus" data-state="checking" aria-live="polite">
             <span class="connection-dot"></span>
-            <div><b id="connectionTitle">Checking local services…</b><small id="connectionDetail">GitHub and Ollama status will appear here.</small></div>
-            <button id="logoutButton" type="button" hidden>DISCONNECT</button>
+            <div><b id="connectionTitle" data-i18n="connection.checking.title">Checking local services…</b><small id="connectionDetail" data-i18n="connection.checking.detail">Reading your GitHub connection and latest scan.</small></div>
+            <button id="logoutButton" type="button" data-i18n="action.disconnect" hidden>DISCONNECT</button>
           </div>
         </div>
 
         <div class="passport-card" aria-label="Developer passport">
           <div class="passport-head">
-            <div><span class="tiny">VERIFIED DEVELOPER</span><strong id="passportName">LIAM<br>CHEN</strong></div>
+            <div><span class="tiny" data-i18n="passport.verified">VERIFIED DEVELOPER</span><strong id="passportName">LIAM<br>CHEN</strong></div>
             <div class="passport-seal"><b id="overallLevel">31</b><span>LV</span></div>
           </div>
-          <div class="role">AI BACKEND ENGINEER</div>
+          <div class="role" data-i18n="passport.role">AI BACKEND ENGINEER</div>
           <div class="xp-label"><span>8,420 XP</span><span>9,000</span></div>
           <div class="xp"><i style="width: 86%"></i></div>
           <div class="passport-stats">
-            <div><span>TOP SKILL</span><b>PYTHON 92</b></div>
-            <div><span>REPOSITORIES</span><b id="repoCount">12 VERIFIED</b></div>
+            <div><span data-i18n="passport.top">TOP SKILL</span><b>PYTHON 92</b></div>
+            <div><span data-i18n="passport.repositories">REPOSITORIES</span><b id="repoCount">12 VERIFIED</b></div>
           </div>
           <div class="fingerprint" aria-hidden="true">⌁⌁⌁<br>⌁◉⌁<br>⌁⌁⌁</div>
-          <div class="verified"><span>◆</span> VERIFIED BY CODE</div>
+          <div class="verified"><span>◆</span> <span data-i18n="passport.seal">VERIFIED BY CODE</span></div>
         </div>
       </section>
 
       <section class="workspace" id="tree">
         <div class="section-heading">
-          <div><p class="eyebrow">SKILL GRAPH / LIVE</p><h2>What your code proves.</h2></div>
-          <div class="legend"><span><i class="dot verified-dot"></i> VERIFIED</span><span><i class="dot partial-dot"></i> EMERGING</span><span><i class="dot fog-dot"></i> UNDISCOVERED</span></div>
+          <div><p class="eyebrow" data-i18n="tree.eyebrow">SKILL GRAPH / LIVE</p><h2 data-i18n="tree.title">What your code proves.</h2></div>
+          <div class="legend"><span><i class="dot verified-dot"></i> <span data-i18n="tree.verified">VERIFIED</span></span><span><i class="dot partial-dot"></i> <span data-i18n="tree.emerging">EMERGING</span></span><span><i class="dot fog-dot"></i> <span data-i18n="tree.unknown">UNDISCOVERED</span></span></div>
         </div>
 
         <div class="tree-panel">
           <div class="tree-toolbar">
-            <button class="active" data-filter="all">ALL DOMAINS</button><button data-filter="backend">BACKEND</button><button data-filter="ai">AI ENGINEERING</button>
+            <button class="active" data-filter="all" data-i18n="tree.all">ALL DOMAINS</button><button data-filter="backend" data-i18n="tree.backend">BACKEND</button><button data-filter="ai" data-i18n="tree.ai">AI ENGINEERING</button>
             <span class="tree-count">14 / 32 NODES DISCOVERED</span>
           </div>
           <div class="skill-map">
@@ -80,43 +80,43 @@
             <button class="skill-node locked small" data-skill="evaluation" data-domain="ai" style="--x:83%;--y:77%"><span class="node-ring"><b>?</b><small>LOCKED</small></span><strong>EVALUATION</strong><small>NO SIGNAL</small></button>
             <div class="fog fog-left"><span>???</span></div><div class="fog fog-right"><span>???</span></div>
           </div>
-          <p class="map-hint">SELECT A NODE TO INSPECT ITS CODE EVIDENCE</p>
+          <p class="map-hint" data-i18n="tree.hint">SELECT A NODE TO INSPECT ITS CODE EVIDENCE</p>
         </div>
       </section>
 
       <section class="quest-section">
-        <div class="quest-label"><span>NEW QUEST UNLOCKED</span><i></i></div>
+        <div class="quest-label"><span data-i18n="quest.unlocked">NEW QUEST UNLOCKED</span><i></i></div>
         <div class="quest-card">
           <div class="quest-icon">⚔</div>
           <div class="quest-main">
-            <p class="eyebrow amber">GROWTH OPPORTUNITY / TESTING</p>
-            <h2>The Testing Dungeon</h2>
-            <p>Your FastAPI foundations are strong. Your test coverage isn't. Add a reliable safety net to <b>DustGuard</b>.</p>
-            <div class="objectives">
-              <label><input type="checkbox"><span>Configure pytest</span><em>+60 XP</em></label>
-              <label><input type="checkbox"><span>Add API integration tests</span><em>+100 XP</em></label>
-              <label><input type="checkbox"><span>Mock LLM responses</span><em>+80 XP</em></label>
-              <label><input type="checkbox"><span>Reach 80% module coverage</span><em>+80 XP</em></label>
+            <p class="eyebrow amber" data-i18n="quest.eyebrow">GROWTH OPPORTUNITY / TESTING</p>
+            <h2 id="questTitle" data-i18n="quest.title">The Testing Dungeon</h2>
+            <p id="questDescription" data-i18n="quest.description">Your FastAPI foundations are strong. Your test coverage isn't. Add a reliable safety net to DustGuard.</p>
+            <div class="objectives" id="questObjectives">
+              <label><input type="checkbox"><span data-i18n="quest.pytest">Configure pytest</span><em>+60 XP</em></label>
+              <label><input type="checkbox"><span data-i18n="quest.integration">Add API integration tests</span><em>+100 XP</em></label>
+              <label><input type="checkbox"><span data-i18n="quest.mock">Mock LLM responses</span><em>+80 XP</em></label>
+              <label><input type="checkbox"><span data-i18n="quest.coverage">Reach 80% module coverage</span><em>+80 XP</em></label>
             </div>
           </div>
           <aside class="reward">
-            <span>ESTIMATED REWARD</span><strong>+320 <small>XP</small></strong>
-            <div>TESTING <b>LV.2 → LV.4</b></div>
-            <button data-toast="Quest accepted — check your repository">ACCEPT QUEST <span>→</span></button>
-            <small>Final reward depends on code verification.</small>
+            <span data-i18n="quest.reward">ESTIMATED REWARD</span><strong id="questReward">+320 <small>XP</small></strong>
+            <div id="questTarget">TESTING <b>LV.2 → LV.4</b></div>
+            <button id="acceptQuest" type="button"><span data-i18n="quest.accept">ACCEPT QUEST</span> <span>→</span></button>
+            <small id="questNote" data-i18n="quest.note">Final reward depends on code verification.</small>
           </aside>
         </div>
       </section>
 
       <section class="boss-section">
         <div class="boss-copy">
-          <p class="eyebrow">CAREER BOSS / TARGET ROLE</p>
-          <h2>AI Engineer <span>LV.50</span></h2>
-          <p>You're <b>63% ready.</b> Close the evidence gaps that matter most.</p>
-          <button class="primary-btn" data-toast="Your 12-week quest line is ready">GENERATE QUEST LINE <span>→</span></button>
+          <p class="eyebrow" data-i18n="boss.eyebrow">CAREER BOSS / TARGET ROLE</p>
+          <h2><span data-i18n="boss.title">AI Engineer</span> <span>LV.50</span></h2>
+          <p data-i18n="boss.description">You're 63% ready. Close the evidence gaps that matter most.</p>
+          <button class="primary-btn" data-toast-key="toast.roadmap"><span data-i18n="boss.generate">GENERATE QUEST LINE</span> <span>→</span></button>
         </div>
         <div class="boss-bars">
-          <div class="bar-head"><span>SKILL</span><span>YOU</span><span>TARGET</span></div>
+          <div class="bar-head"><span data-i18n="boss.skill">SKILL</span><span data-i18n="boss.you">YOU</span><span data-i18n="boss.target">TARGET</span></div>
           <div class="bar-row"><b>Python</b><i><u style="width:92%"></u></i><i><u style="width:90%"></u></i></div>
           <div class="bar-row"><b>LLM</b><i><u style="width:68%"></u></i><i><u style="width:92%"></u></i></div>
           <div class="bar-row"><b>RAG</b><i><u style="width:54%"></u></i><i><u style="width:86%"></u></i></div>
@@ -127,24 +127,24 @@
       </section>
     </main>
 
-    <footer><a class="brand" href="#"><span class="brand-mark">D/</span> DEVTREE</a><p>SKILLS ARE CLAIMS. CODE IS EVIDENCE.</p><span>© 2026 / BUILD 0.1</span></footer>
+    <footer><a class="brand" href="#"><span class="brand-mark">D/</span> DEVTREE</a><p data-i18n="footer.slogan">SKILLS ARE CLAIMS. CODE IS EVIDENCE.</p><span>© 2026 / BUILD 0.2</span></footer>
 
     <div class="drawer-backdrop" id="drawerBackdrop"></div>
     <aside class="evidence-drawer" id="evidenceDrawer" aria-hidden="true">
       <button class="drawer-close" id="drawerClose" aria-label="Close evidence">×</button>
-      <p class="eyebrow">VERIFIED SKILL / BACKEND</p>
-      <div class="drawer-title"><div><h2 id="skillTitle">FASTAPI</h2><span>LAST VERIFIED 2M AGO</span></div><div class="level"><b id="skillLevel">8</b><span>LEVEL</span></div></div>
-      <div class="confidence"><span>AI CONFIDENCE</span><b id="skillConfidence">94%</b><i><u id="confidenceBar" style="width:94%"></u></i></div>
-      <h3>Why am I Level <span id="whyLevel">8</span>?</h3>
+      <p class="eyebrow" data-i18n="drawer.eyebrow">VERIFIED SKILL / CODE EVIDENCE</p>
+      <div class="drawer-title"><div><h2 id="skillTitle">FASTAPI</h2><span data-i18n="drawer.updated">LATEST VERIFIED SCAN</span></div><div class="level"><b id="skillLevel">8</b><span data-i18n="drawer.level">LEVEL</span></div></div>
+      <div class="confidence"><span data-i18n="drawer.confidence">AI CONFIDENCE</span><b id="skillConfidence">94%</b><i><u id="confidenceBar" style="width:94%"></u></i></div>
+      <h3 id="whyHeading">Why am I Level 8?</h3>
       <p id="skillReason">Your repositories show repeated production use of async APIs, dependency injection, middleware, authentication and streaming responses.</p>
       <div class="capabilities" id="capabilities"></div>
-      <div class="evidence-head"><h3>Code evidence</h3><span id="evidenceCount">06 SIGNALS</span></div>
+      <div class="evidence-head"><h3 data-i18n="drawer.evidence">Code evidence</h3><span id="evidenceCount">06 SIGNALS</span></div>
       <div id="evidenceList"></div>
-      <div class="next-level"><span>NEXT LEVEL</span><p id="nextLevel">Add integration tests and production observability to reach Level 9.</p></div>
+      <div class="next-level"><span data-i18n="drawer.next">NEXT LEVEL</span><p id="nextLevel">Add integration tests and production observability to reach Level 9.</p></div>
     </aside>
-    <div class="modal" id="scoreModal" aria-hidden="true"><div><button id="modalClose">×</button><p class="eyebrow">SCORING PROTOCOL</p><h2>Levels are earned,<br>never selected.</h2><p>DEVTREE reads implementation patterns across your repositories, weighs complexity and repetition, then links every conclusion to inspectable code. Missing GitHub evidence is shown as unknown—not incompetence.</p><ol><li><b>01</b> Code is indexed without storing secrets.</li><li><b>02</b> Capabilities are extracted with file-level citations.</li><li><b>03</b> Evidence is scored for depth, repetition and recency.</li></ol></div></div>
+    <div class="modal" id="scoreModal" aria-hidden="true"><div><button id="modalClose">×</button><p class="eyebrow" data-i18n="modal.eyebrow">SCORING PROTOCOL</p><h2 data-i18n="modal.title">Levels are earned, never selected.</h2><p data-i18n="modal.description">DEVTREE reads implementation patterns across your repositories, weighs complexity and repetition, then links every conclusion to inspectable code.</p><ol><li><b>01</b> <span data-i18n="modal.step1">Code is indexed without storing secrets.</span></li><li><b>02</b> <span data-i18n="modal.step2">Capabilities are extracted with file-level citations.</span></li><li><b>03</b> <span data-i18n="modal.step3">Evidence is scored for depth, repetition and recency.</span></li></ol></div></div>
     <div class="scan-overlay" id="scanOverlay" aria-hidden="true">
-      <div class="scan-terminal"><p class="eyebrow">REPOSITORY SCAN / LIVE</p><div class="scan-orbit"><span></span><b id="scanPercent">0%</b></div><h2 id="scanTitle">Preparing your scan…</h2><p id="scanDetail">The worker will report each verified stage.</p><div class="scan-progress"><i id="scanProgress"></i></div><code id="scanLog">QUEUED</code><ol class="scan-steps" id="scanSteps"><li data-stage="repositories">Repositories</li><li data-stage="evidence">Code evidence</li><li data-stage="ai_review">Local AI review</li><li data-stage="scoring">Skill graph</li></ol><div class="scan-actions"><button id="scanRetry" type="button" hidden>RETRY SCAN</button><button id="scanClose" type="button" hidden>CLOSE</button></div></div>
+      <div class="scan-terminal"><p class="eyebrow" data-i18n="scan.eyebrow">REPOSITORY SCAN / LIVE</p><div class="scan-orbit"><span></span><b id="scanPercent">0%</b></div><h2 id="scanTitle" data-i18n="scan.preparing">Preparing your scan…</h2><p id="scanDetail" data-i18n="scan.preparing.detail">The worker will report each verified stage.</p><div class="scan-progress"><i id="scanProgress"></i></div><code id="scanLog">QUEUED</code><ol class="scan-steps" id="scanSteps"><li data-stage="repositories" data-i18n="scan.repositories">Repositories</li><li data-stage="evidence" data-i18n="scan.evidence">Code evidence</li><li data-stage="ai_review" data-i18n="scan.ai">Local AI review</li><li data-stage="scoring" data-i18n="scan.graph">Skill graph</li></ol><div class="scan-actions"><button id="scanRetry" type="button" data-i18n="scan.retry" hidden>RETRY SCAN</button><button id="scanClose" type="button" data-i18n="scan.close" hidden>CLOSE</button></div></div>
     </div>
     <div class="toast" id="toast"><span>◆</span><b></b></div>
     <script type="module" src="/src/main.ts"></script>
