@@ -1,4 +1,4 @@
-import { reviewWithOllama } from './ollama.js';
+import { reviewWithOllama, type AiRuntimeSettings } from './ollama.js';
 import type { AnalysisResult, Evidence, Skill, SkillKey, ScanStage } from '../shared/types.js';
 
 type SourceKind = Evidence['sourceKind'];
@@ -141,7 +141,7 @@ export function scoreSkills(files: SourceFile[]): Record<SkillKey, Skill> {
   })) as Record<SkillKey, Skill>;
 }
 
-export async function analyzeGitHub(token: string, onProgress: (stage: ScanStage, progress: number) => Promise<void> = async () => {}) : Promise<AnalysisResult> {
+export async function analyzeGitHub(token: string, onProgress: (stage: ScanStage, progress: number) => Promise<void> = async () => {},aiSettings?:AiRuntimeSettings) : Promise<AnalysisResult> {
   await onProgress('repositories', 15);
   const [user, allRepos] = await Promise.all([github<GitHubUser>('/user', token), github<GitHubRepo[]>('/user/repos?per_page=50&sort=pushed&affiliation=owner,collaborator', token)]);
   const repos = allRepos.filter(repo => !repo.fork && !repo.archived).slice(0, MAX_REPOS);
@@ -165,7 +165,7 @@ export async function analyzeGitHub(token: string, onProgress: (stage: ScanStage
   await onProgress('evidence', 62);
   const ruleSkills = scoreSkills(files);
   await onProgress('ai_review', 72);
-  const reviewed = await reviewWithOllama(ruleSkills);
+  const reviewed = await reviewWithOllama(ruleSkills,aiSettings);
   await onProgress('scoring', 94);
   const skills = Object.fromEntries(Object.entries(reviewed.skills).map(([key, skill]) => [key, { ...skill, evidence: skill.evidence.map(({ _snippet, ...evidence }) => evidence) }])) as Record<SkillKey, Skill>;
   const overallLevel = Math.max(1, Math.round(Object.values(skills).reduce((sum, skill) => sum + skill.level, 0) / 2));

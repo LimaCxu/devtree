@@ -1,4 +1,4 @@
-import type { AnalysisResult, AuthState, CareerTarget, DeveloperProfile, PublicPassport, Quest, ScanRecord, ScanStage, Skill, SkillKey } from '../shared/types.js';
+import type { AiProvider, AiSettings, AnalysisResult, AuthState, CareerTarget, DeveloperProfile, PublicPassport, Quest, ScanRecord, ScanStage, Skill, SkillKey } from '../shared/types.js';
 import { applyTranslations, getLocale, setLocale, t, type MessageKey } from './i18n.js';
 
 type UiSkill = Omit<Skill, 'score' | 'repositoryCount' | 'evidenceScore'> & { score?: number; repositoryCount?: number; evidenceScore?: number };
@@ -21,10 +21,13 @@ function child<T extends Element>(root: Element, selector: string): T { const no
 const drawer=must<HTMLElement>('#evidenceDrawer'), backdrop=must<HTMLElement>('#drawerBackdrop'), modal=must<HTMLElement>('#scoreModal');
 const toast=must<HTMLElement>('#toast'), syncButton=must<HTMLButtonElement>('#syncGithub'), logoutButton=must<HTMLButtonElement>('#logoutButton');
 const scanOverlay=must<HTMLElement>('#scanOverlay'), scanRetry=must<HTMLButtonElement>('#scanRetry'), scanClose=must<HTMLButtonElement>('#scanClose');
+const aiDrawer=must<HTMLElement>('#aiSettings'),aiBackdrop=must<HTMLElement>('#aiBackdrop'),aiButton=must<HTMLButtonElement>('#aiSettingsButton');
+aiButton.disabled=true;
 let toastTimer: ReturnType<typeof setTimeout>|undefined, authStatePromise: Promise<AuthState>|undefined, activeScan=false;
 let currentProfile: DeveloperProfile|undefined, currentAnalysis: AnalysisResult|undefined, currentJob: ScanRecord|undefined, currentSkill: SkillKey|undefined;
 let currentQuest: Quest|undefined;
 let currentCareer: CareerTarget|undefined, passportPublic=false, passportLogin='';
+let currentAi:AiSettings|undefined;
 let connectionView: {state:'checking'|'connected'|'disconnected'|'error';title:MessageKey;detail:MessageKey;params?:Record<string,string|number>}|undefined;
 
 function showToast(message:string){must<HTMLElement>('#toast b').textContent=message;toast.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('show'),3200)}
@@ -53,6 +56,14 @@ function renderPassportControls(){const publish=must<HTMLButtonElement>('#publis
 async function togglePassport(){try{const settings=await api<{isPublic:boolean;login:string}>('/api/passport/settings',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({isPublic:!passportPublic})});passportPublic=settings.isPublic;passportLogin=settings.login;renderPassportControls();showToast(t(passportPublic?'toast.published':'toast.private'))}catch(error){showToast(error instanceof Error?error.message:'Passport settings could not be updated')}}
 async function sharePassport(){const url=`${location.origin}/p/${passportLogin}`;await navigator.clipboard.writeText(url);showToast(t('toast.copied'))}
 
+function aiPayload(){return{provider:must<HTMLSelectElement>('#aiProvider').value as AiProvider,baseUrl:must<HTMLInputElement>('#aiBaseUrl').value,model:must<HTMLInputElement>('#aiModel').value,apiKey:must<HTMLInputElement>('#aiApiKey').value}}
+function aiMessage(message:string,error=false){const output=must<HTMLOutputElement>('#aiResult');output.textContent=message;output.dataset.state=error?'error':'ok'}
+function renderAiSettings(settings:AiSettings){currentAi=settings;must<HTMLSelectElement>('#aiProvider').value=settings.provider;must<HTMLInputElement>('#aiBaseUrl').value=settings.baseUrl;must<HTMLInputElement>('#aiModel').value=settings.model;must<HTMLInputElement>('#aiApiKey').value='';must<HTMLElement>('#aiKeyField').hidden=settings.provider==='ollama';must<HTMLElement>('#aiKeyStatus').textContent=t(settings.hasApiKey?'ai.keySaved':'ai.keyMissing')}
+async function openAiSettings(){if(aiButton.disabled)return;aiDrawer.classList.add('open');aiBackdrop.classList.add('open');aiDrawer.setAttribute('aria-hidden','false');aiMessage('');try{renderAiSettings(await api<AiSettings>('/api/ai-settings'))}catch(error){aiMessage(error instanceof Error?error.message:'AI settings unavailable',true)}}
+function closeAiSettings(){aiDrawer.classList.remove('open');aiBackdrop.classList.remove('open');aiDrawer.setAttribute('aria-hidden','true')}
+async function testAi(){const button=must<HTMLButtonElement>('#testAi');button.disabled=true;aiMessage(t('ai.testing'));try{const result=await api<{available:boolean;model:string;reason?:string}>('/api/ai-settings/test',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(aiPayload())});aiMessage(result.available?t('ai.available',{model:result.model}):result.reason||'Connection failed',!result.available)}catch(error){aiMessage(error instanceof Error?error.message:'Connection failed',true)}finally{button.disabled=false}}
+async function saveAi(event:SubmitEvent){event.preventDefault();const form=event.currentTarget as HTMLFormElement;const button=child<HTMLButtonElement>(form,'button[type="submit"]');button.disabled=true;try{const settings=await api<AiSettings>('/api/ai-settings',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(aiPayload())});renderAiSettings(settings);aiMessage(t('ai.saved',{model:settings.model}))}catch(error){aiMessage(error instanceof Error?error.message:'Settings could not be saved',true)}finally{button.disabled=false}}
+
 async function initializePublic(login:string){document.body.classList.add('public-passport');applyTranslations();try{const passport=await api<PublicPassport>(`/api/passports/${encodeURIComponent(login)}`);skills={...skills,...passport.skills};renderAnalysis({profile:passport.profile,scannedAt:passport.scannedAt,filesInspected:0,repositories:passport.repositories.map(repository=>({...repository,fullName:`${passport.profile.login}/${repository.name}`,pushedAt:passport.scannedAt,defaultBranch:'main'})),skills:passport.skills,aiReview:{used:passport.aiVerified,model:'public'}});must<HTMLElement>('#scanState').textContent=t('passport.publicView');document.title=`${passport.profile.login} — DEVTREE`;must<HTMLElement>('.quest-section').hidden=true;must<HTMLElement>('.boss-section').hidden=true}catch(error){setConnection('error','connection.offline.title','connection.offline.detail');showToast(error instanceof Error?error.message:'Public Passport unavailable')}}
 
 const stageCopy:Record<ScanStage,{title:MessageKey;detail:MessageKey;log:string}>={queued:{title:'scan.queued.title',detail:'scan.queued.detail',log:'QUEUED'},repositories:{title:'scan.repositories.title',detail:'scan.repositories.detail',log:'INDEXING REPOSITORIES'},evidence:{title:'scan.evidence.title',detail:'scan.evidence.detail',log:'EXTRACTING CODE SIGNALS'},ai_review:{title:'scan.ai_review.title',detail:'scan.ai_review.detail',log:'OLLAMA REVIEW'},scoring:{title:'scan.scoring.title',detail:'scan.scoring.detail',log:'CALCULATING LEVELS'},completed:{title:'scan.completed.title',detail:'scan.completed.detail',log:'VERIFIED BY CODE'},failed:{title:'scan.failed.title',detail:'scan.failed.detail',log:'ACTION REQUIRED'}};
@@ -63,12 +74,20 @@ async function followScan(initial:ScanRecord){openScan();let job=initial;renderS
 async function runScan(){syncButton.disabled=true;try{const job=await api<ScanRecord>('/api/analyze',{method:'POST'});await followScan(job)}catch(error){const message=error instanceof Error?error.message:'Scan failed';renderScan({id:'',status:'failed',stage:'failed',progress:0,result:null,error:message});openScan();showToast(message)}finally{syncButton.disabled=false;history.replaceState({},'',location.pathname)}}
 async function getAuthState():Promise<AuthState>{try{return await api<AuthState>('/api/auth/status')}catch{setConnection('error','connection.offline.title','connection.offline.detail');return{connected:false,user:null,oauthConfigured:false,unavailable:true}}}
 async function handleConnectAction(){syncButton.disabled=true;const state=await(authStatePromise||getAuthState());if(state.connected){syncButton.disabled=false;await runScan();return}if(state.unavailable){syncButton.disabled=false;showToast(t('toast.offline'));return}if(!state.oauthConfigured){syncButton.disabled=false;setConnection('error','connection.oauth.title','connection.oauth.detail');showToast(t('toast.oauth'));return}location.assign('/api/auth/github')}
+aiButton.addEventListener('click',openAiSettings);
+must<HTMLButtonElement>('#aiSettingsClose').addEventListener('click',closeAiSettings);
+aiBackdrop.addEventListener('click',closeAiSettings);
+must<HTMLButtonElement>('#testAi').addEventListener('click',testAi);
+must<HTMLFormElement>('#aiSettingsForm').addEventListener('submit',saveAi);
+must<HTMLSelectElement>('#aiProvider').addEventListener('change',event=>{const provider=(event.currentTarget as HTMLSelectElement).value as AiProvider;must<HTMLElement>('#aiKeyField').hidden=provider==='ollama';const base=must<HTMLInputElement>('#aiBaseUrl'),model=must<HTMLInputElement>('#aiModel');if(provider==='ollama'&&/openai\.com|\/v1\/?$/.test(base.value)){base.value='http://host.docker.internal:11434';model.value='qwen3.6:latest'}else if(provider==='openai-compatible'&&/11434/.test(base.value)){base.value='https://api.openai.com/v1';model.value='gpt-4.1-mini'}});
+document.addEventListener('devtree:localechange',()=>{if(currentAi)renderAiSettings(currentAi)});
+document.addEventListener('keydown',event=>{if(event.key==='Escape')closeAiSettings()});
 async function initialize(){
   const publicMatch=location.pathname.match(/^\/p\/([A-Za-z0-9-]+)$/);
   if(publicMatch){await initializePublic(publicMatch[1]!);return}
   applyTranslations();setConnection('checking','connection.checking.title','connection.checking.detail');authStatePromise=getAuthState();const state=await authStatePromise;
   if(!state.connected||!state.user){setAction('action.connect');if(!state.unavailable)setConnection('disconnected','connection.disconnected.title','connection.disconnected.detail');const error=new URLSearchParams(location.search).get('error');if(error)showToast(t(error==='oauth_state'?'toast.authExpired':'toast.authFailed'));return}
-  setProfile(state.user);setAction('action.scan');setConnection('connected','connection.connected.title','connection.connected.detail',{login:state.user.login});await loadPassportSettings();
+  aiButton.disabled=false;setProfile(state.user);setAction('action.scan');setConnection('connected','connection.connected.title','connection.connected.detail',{login:state.user.login});await loadPassportSettings();
   try{const latest=await api<ScanRecord|null>('/api/scans/latest');if(latest?.status==='completed'&&latest.result)renderAnalysis(latest.result);if(latest&&(latest.status==='queued'||latest.status==='running'))await followScan(latest);const target=await api<CareerTarget|null>('/api/career-target');if(target)renderCareer(target)}catch(error){showToast(error instanceof Error?error.message:'Could not restore the latest scan')}
   if(new URLSearchParams(location.search).has('connected'))await runScan()
 }

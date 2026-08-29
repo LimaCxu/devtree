@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import pg from 'pg';
-import type { CareerTarget, Quest, QuestObjective } from '../shared/types.js';
+import type { AiProvider, AiSettings, CareerTarget, Quest, QuestObjective } from '../shared/types.js';
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 let ready: Promise<unknown> | undefined;
@@ -19,6 +19,7 @@ export function initDb() {
     CREATE TABLE IF NOT EXISTS passport_settings (github_id bigint PRIMARY KEY REFERENCES users(github_id) ON DELETE CASCADE, is_public boolean NOT NULL DEFAULT false, updated_at timestamptz NOT NULL DEFAULT now());
     CREATE TABLE IF NOT EXISTS career_targets (github_id bigint PRIMARY KEY REFERENCES users(github_id) ON DELETE CASCADE, role text NOT NULL, job_description text, result jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());
     CREATE TABLE IF NOT EXISTS webhook_deliveries (delivery_id text PRIMARY KEY, event text NOT NULL, received_at timestamptz NOT NULL DEFAULT now());
+    CREATE TABLE IF NOT EXISTS ai_settings (github_id bigint PRIMARY KEY REFERENCES users(github_id) ON DELETE CASCADE, provider text NOT NULL DEFAULT 'ollama', base_url text NOT NULL, model text NOT NULL, api_key_enc text, updated_at timestamptz NOT NULL DEFAULT now());
     CREATE INDEX IF NOT EXISTS scans_user_created_idx ON scans(github_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS quests_user_status_idx ON quests(github_id, status, accepted_at DESC);
     ALTER TABLE users ADD COLUMN IF NOT EXISTS refresh_enc text;
@@ -61,4 +62,7 @@ export async function getPublicPassport(login:string) { await initDb(); const {r
 export async function saveCareerTarget(githubId:GithubId,target:CareerTarget) { await initDb(); const {rows}=await pool.query(`INSERT INTO career_targets(github_id,role,job_description,result) VALUES($1,$2,$3,$4) ON CONFLICT(github_id) DO UPDATE SET role=excluded.role,job_description=excluded.job_description,result=excluded.result,updated_at=now() RETURNING result,updated_at AS "updatedAt"`,[githubId,target.role,target.jobDescription||null,JSON.stringify(target)]); return {...rows[0].result,updatedAt:rows[0].updatedAt}; }
 export async function getCareerTarget(githubId:GithubId) { await initDb(); const {rows}=await pool.query('SELECT result,updated_at AS "updatedAt" FROM career_targets WHERE github_id=$1',[githubId]); return rows[0]?{...rows[0].result,updatedAt:rows[0].updatedAt}:null; }
 export async function registerWebhookDelivery(deliveryId:string,event:string) { await initDb(); await pool.query("DELETE FROM webhook_deliveries WHERE received_at < now() - interval '30 days'");const result=await pool.query('INSERT INTO webhook_deliveries(delivery_id,event) VALUES($1,$2) ON CONFLICT DO NOTHING',[deliveryId,event]);return result.rowCount===1; }
+export async function getAiSettings(githubId:GithubId):Promise<AiSettings>{await initDb();const {rows}=await pool.query('SELECT provider,base_url AS "baseUrl",model,api_key_enc IS NOT NULL AS "hasApiKey",updated_at AS "updatedAt" FROM ai_settings WHERE github_id=$1',[githubId]);return rows[0]||{provider:'ollama',baseUrl:process.env.OLLAMA_URL||'http://host.docker.internal:11434',model:process.env.OLLAMA_MODEL||'qwen3.6:latest',hasApiKey:false}}
+export async function saveAiSettings(githubId:GithubId,input:{provider:AiProvider;baseUrl:string;model:string;apiKey?:string|null}):Promise<AiSettings>{await initDb();const encrypted=input.apiKey?encrypt(input.apiKey):null;const {rows}=await pool.query(`INSERT INTO ai_settings(github_id,provider,base_url,model,api_key_enc) VALUES($1,$2,$3,$4,$5) ON CONFLICT(github_id) DO UPDATE SET provider=excluded.provider,base_url=excluded.base_url,model=excluded.model,api_key_enc=CASE WHEN $6::boolean THEN excluded.api_key_enc ELSE ai_settings.api_key_enc END,updated_at=now() RETURNING provider,base_url AS "baseUrl",model,api_key_enc IS NOT NULL AS "hasApiKey",updated_at AS "updatedAt"`,[githubId,input.provider,input.baseUrl,input.model,encrypted,Boolean(input.apiKey)]);return rows[0]}
+export async function getAiRuntimeSettings(githubId:GithubId):Promise<{provider:AiProvider;baseUrl:string;model:string;apiKey?:string}>{await initDb();const {rows}=await pool.query('SELECT provider,base_url,model,api_key_enc FROM ai_settings WHERE github_id=$1',[githubId]);if(!rows[0])return{provider:'ollama',baseUrl:process.env.OLLAMA_URL||'http://host.docker.internal:11434',model:process.env.OLLAMA_MODEL||'qwen3.6:latest'};return{provider:rows[0].provider,baseUrl:rows[0].base_url,model:rows[0].model,apiKey:rows[0].api_key_enc?decrypt(rows[0].api_key_enc):undefined}}
 export async function dbHealth() { try { await initDb(); await pool.query('SELECT 1'); return true; } catch { return false; } }

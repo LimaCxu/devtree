@@ -3,6 +3,7 @@ export type Locale = 'en' | 'zh';
 const messages = {
   en: {
     'nav.profile': 'Open profile', 'nav.language': 'Switch to Chinese',
+    'ai.open':'AI settings','ai.close':'Close AI settings','ai.eyebrow':'AI REVIEW / ACCOUNT SETTINGS','ai.title':'Choose where code review runs.','ai.description':'Local Ollama keeps code on this machine. Cloud-compatible providers send selected evidence snippets to the configured API.','ai.provider':'PROVIDER','ai.baseUrl':'BASE URL','ai.model':'MODEL','ai.key':'API KEY','ai.keyPlaceholder':'Leave blank to keep the saved key','ai.keySaved':'An encrypted key is saved.','ai.keyMissing':'No cloud key saved.','ai.safety':'Keys are encrypted on the server and never returned to the browser.','ai.test':'TEST CONNECTION','ai.save':'SAVE SETTINGS','ai.testing':'Testing connection…','ai.available':'Connection ready · {model}','ai.saved':'AI settings saved. New scans will use {model}.',
     'status.demo': 'DEMO INDEX', 'status.ready': 'READY',
     'hero.eyebrow': 'DEVELOPER PASSPORT / VERIFIED BY CODE', 'hero.line1': 'Your code becomes', 'hero.line2': 'your skill tree.',
     'hero.lede1': 'No self-reported skills. No vanity metrics.', 'hero.lede2': 'Every level is verified by the code you ship.',
@@ -46,6 +47,7 @@ const messages = {
   },
   zh: {
     'nav.profile': '打开开发者护照', 'nav.language': '切换为英文',
+    'ai.open':'AI 设置','ai.close':'关闭 AI 设置','ai.eyebrow':'AI 审核 / 账号设置','ai.title':'选择代码审核运行的位置。','ai.description':'本地 Ollama 会让代码留在这台电脑上；云端兼容服务会接收筛选后的代码证据片段。','ai.provider':'服务商','ai.baseUrl':'接口地址','ai.model':'模型','ai.key':'API KEY','ai.keyPlaceholder':'留空将继续使用已保存的 Key','ai.keySaved':'已保存加密 Key。','ai.keyMissing':'尚未保存云端 Key。','ai.safety':'Key 在服务端加密保存，且永远不会返回浏览器。','ai.test':'测试连接','ai.save':'保存设置','ai.testing':'正在测试连接…','ai.available':'连接可用 · {model}','ai.saved':'AI 设置已保存，新扫描将使用 {model}。',
     'status.demo': '演示数据', 'status.ready': '已就绪',
     'hero.eyebrow': '开发者护照 / 代码验证', 'hero.line1': '你的代码，构成', 'hero.line2': '你的技能树。',
     'hero.lede1': '不靠自我描述，不看虚荣指标。', 'hero.lede2': '每一级能力，都由你提交的代码验证。',

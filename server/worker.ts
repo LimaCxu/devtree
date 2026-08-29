@@ -1,5 +1,5 @@
 import { analyzeGitHub } from './analyzer.js';
-import { initDb, scanOwner, scanToken, updateScan } from './db.js';
+import { getAiRuntimeSettings, initDb, scanOwner, scanToken, updateScan } from './db.js';
 import { redis } from './queue.js';
 import { verifyAcceptedQuests } from './quests.js';
 
@@ -13,9 +13,10 @@ while (true) {
     await updateScan(id, { status: 'running', stage: 'repositories', progress: 10, error: null });
     const token = await scanToken(id);
     if (!token) throw new Error('GitHub token is unavailable');
-    const result = await analyzeGitHub(token, (stage, progress) => updateScan(id, { status: 'running', stage, progress }));
     const githubId=await scanOwner(id);
-    if(githubId)await verifyAcceptedQuests(githubId,token,result);
+    if(!githubId)throw new Error('Scan owner is unavailable');
+    const result = await analyzeGitHub(token, (stage, progress) => updateScan(id, { status: 'running', stage, progress }),await getAiRuntimeSettings(githubId));
+    await verifyAcceptedQuests(githubId,token,result);
     await updateScan(id, { status: 'completed', stage: 'completed', progress: 100, result });
   } catch (error) {
     console.error(`[worker] scan ${id} failed:`, error instanceof Error?error.message:'Unknown scan failure');

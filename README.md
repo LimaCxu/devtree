@@ -27,6 +27,7 @@ DEVTREE is an interactive product prototype for a code-verified developer passpo
 - Private-by-default Developer Passports with explicit publishing and shareable `/p/<github-login>` pages
 - Persisted Career Boss targets generated from a role/JD, current code evidence, and a 4/8/12-week quest line
 - Idempotent GitHub webhook delivery handling and one-time, transactional Quest XP rewards
+- Account-level AI settings for local Ollama or OpenAI-compatible APIs, with encrypted keys and connection testing
 
 ## Run locally
 
@@ -68,6 +69,15 @@ Open `http://localhost:4317`. The container calls the host model through `http:/
 The analysis reports four real stages: repository indexing, evidence extraction, local AI review, and skill scoring. Ollama reviews only selected snippets and may confirm or lower a rule score, never raise it. If Ollama is unavailable, analysis continues safely with deterministic scoring.
 
 Evidence V2 treats imports and configuration as supporting signals rather than proof of mastery, discounts test evidence for production skills, folds duplicate matches within one repository, and pins citations to the scanned commit. Ollama may confirm or lower the deterministic level; it cannot raise it.
+
+### Configure AI in the page
+
+After connecting GitHub, open **AI** in the top navigation. Each account can choose:
+
+- `Ollama · Local`: base URL and model; no API key required.
+- `OpenAI-compatible API`: base URL, model, and API key.
+
+Use **Test connection** before saving. API keys are encrypted with `TOKEN_ENCRYPTION_KEY`, never returned to the browser, and never written to client storage. Local Ollama remains the default. A cloud provider receives only the evidence snippets selected for adversarial review, so the settings panel explicitly shows that privacy boundary.
 
 To enable push-driven Quest verification, set `GITHUB_WEBHOOK_SECRET` and configure the repository webhook to send `push` events to `<APP_URL>/api/webhooks/github` with the same secret. Localhost needs a secure tunnel before GitHub can deliver webhooks.
 

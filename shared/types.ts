@@ -117,3 +117,12 @@ export interface CareerTarget {
   roadmap: RoadmapItem[];
   updatedAt?: string;
 }
+
+export type AiProvider = 'ollama' | 'openai-compatible';
+export interface AiSettings {
+  provider: AiProvider;
+  baseUrl: string;
+  model: string;
+  hasApiKey: boolean;
+  updatedAt?: string;
+}

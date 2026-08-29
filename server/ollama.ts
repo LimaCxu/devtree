@@ -1,12 +1,15 @@
-import type { Skill, SkillKey } from '../shared/types.js';
+import type { AiProvider, Skill, SkillKey } from '../shared/types.js';
 
 const DEFAULT_URL = 'http://127.0.0.1:11434';
 const DEFAULT_MODEL = 'qwen3.6:latest';
 
-function config() {
+export interface AiRuntimeSettings { provider:AiProvider; baseUrl:string; model:string; apiKey?:string }
+function config(override?:AiRuntimeSettings) {
   return {
-    url: (process.env.OLLAMA_URL || DEFAULT_URL).replace(/\/$/, ''),
-    model: process.env.OLLAMA_MODEL || DEFAULT_MODEL,
+    provider:override?.provider||'ollama',
+    url: (override?.baseUrl||process.env.OLLAMA_URL || DEFAULT_URL).replace(/\/$/, ''),
+    model: override?.model||process.env.OLLAMA_MODEL || DEFAULT_MODEL,
+    apiKey:override?.apiKey,
     enabled: process.env.OLLAMA_ENABLED !== 'false'
   };
 }
@@ -23,6 +26,11 @@ export async function ollamaStatus() {
   } catch (error) {
     return { available: false, model: current.model, reason: error instanceof Error?error.message:'Unknown Ollama error' };
   }
+}
+
+export async function testAiProvider(settings:AiRuntimeSettings):Promise<{available:boolean;model:string;reason?:string}>{
+  const current=config(settings);
+  try{const response=await fetch(`${current.url}${current.provider==='ollama'?'/api/tags':'/models'}`,{headers:current.apiKey?{Authorization:`Bearer ${current.apiKey}`}:{},signal:AbortSignal.timeout(8000)});if(!response.ok)return{available:false,model:current.model,reason:`HTTP ${response.status}`};return{available:true,model:current.model}}catch(error){return{available:false,model:current.model,reason:error instanceof Error?error.message:'Connection failed'}}
 }
 
 const schema = {
@@ -57,23 +65,24 @@ function compactEvidence(skills: Record<SkillKey, Skill>) {
 }
 
 interface ReviewItem { skill: SkillKey; recommendedLevel: number; confidenceAdjustment: number; explanation: string; missingEvidence: string[] }
-export async function reviewWithOllama(skills: Record<SkillKey, Skill>): Promise<{skills:Record<SkillKey,Skill>;review:{used:boolean;model:string;reason?:string;reviewedAt?:string}}> {
-  const current = config();
+export async function reviewWithOllama(skills: Record<SkillKey, Skill>,override?:AiRuntimeSettings): Promise<{skills:Record<SkillKey,Skill>;review:{used:boolean;model:string;reason?:string;reviewedAt?:string}}> {
+  const current = config(override);
   if (!current.enabled) return { skills, review: { used: false, reason: 'disabled', model: current.model } };
-  const status = await ollamaStatus();
+  const status = override?await testAiProvider(override):await ollamaStatus();
   if (!status.available) return { skills, review: { used: false, reason: status.reason || 'model unavailable', model: current.model } };
 
   const prompt = `You are DEVTREE's adversarial code-evidence reviewer. The deterministic engine has proposed a maximum skill level. You may confirm or lower that level, never raise it. Never infer a capability that is not visible in the supplied code and never invent repositories, files, line numbers, or technologies. Imports, configuration mentions, boilerplate, tests of mocks, and repeated matches in one repository are not production mastery. Recommend a level from 0 through ruleLevel. confidenceAdjustment must be between -20 and 0. Explanations must be one concise sentence stating exactly what the supplied implementation proves. Return only schema-valid JSON.\n\n${JSON.stringify(compactEvidence(skills))}`;
   try {
-    const response = await fetch(`${current.url}/api/chat`, {
+    const ollama=current.provider==='ollama';
+    const response = await fetch(`${current.url}${ollama?'/api/chat':'/chat/completions'}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json',...(current.apiKey?{Authorization:`Bearer ${current.apiKey}`}:{}) },
       signal: AbortSignal.timeout(Number(process.env.OLLAMA_TIMEOUT_MS || 120000)),
-      body: JSON.stringify({ model: current.model, stream: false, think: false, format: schema, options: { temperature: 0.1, num_ctx: 16384 }, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify(ollama?{ model: current.model, stream: false, think: false, format: schema, options: { temperature: 0.1, num_ctx: 16384 }, messages: [{ role: 'user', content: prompt }] }:{model:current.model,temperature:.1,response_format:{type:'json_object'},messages:[{role:'user',content:prompt}]})
     });
     if (!response.ok) throw new Error(`Ollama HTTP ${response.status}: ${await response.text()}`);
-    const body = await response.json();
-    const parsed = JSON.parse(body.message?.content || '{}') as { reviews?: ReviewItem[] };
+    const body = await response.json() as {message?:{content?:string};choices?:Array<{message?:{content?:string}}>};
+    const parsed = JSON.parse((ollama?body.message?.content:body.choices?.[0]?.message?.content) || '{}') as { reviews?: ReviewItem[] };
     const reviews = new Map<SkillKey, ReviewItem>((parsed.reviews || []).map(item => [item.skill, item]));
     const reviewed = Object.fromEntries(Object.entries(skills).map(([key, skill]) => {
       const item = reviews.get(key as SkillKey);

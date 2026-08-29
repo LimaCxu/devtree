@@ -1,11 +1,11 @@
 import crypto from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { ollamaStatus } from './ollama.js';
-import { acceptedQuestsForRepository, consumeState, createScan, createSession, dbHealth, deleteSession, getCareerTarget, getCurrentQuest, getLatestScan, getPassportSettings, getPublicPassport, getScan, getSession, registerWebhookDelivery, saveCareerTarget, saveQuest, saveState, saveUser, setPassportPublic } from './db.js';
+import { ollamaStatus, testAiProvider } from './ollama.js';
+import { acceptedQuestsForRepository, consumeState, createScan, createSession, dbHealth, deleteSession, getAiRuntimeSettings, getAiSettings, getCareerTarget, getCurrentQuest, getLatestScan, getPassportSettings, getPublicPassport, getScan, getSession, registerWebhookDelivery, saveAiSettings, saveCareerTarget, saveQuest, saveState, saveUser, setPassportPublic } from './db.js';
 import { enqueueScan, queueHealth } from './queue.js';
 import { recommendQuest } from './quests.js';
 import { generateCareerTarget } from './career.js';
-import type { AnalysisResult, PublicPassport } from '../shared/types.js';
+import type { AiProvider, AnalysisResult, PublicPassport } from '../shared/types.js';
 
 const COOKIE = 'devtree_session';
 
@@ -17,6 +17,7 @@ function session(req: IncomingMessage) { return getSession(cookies(req)[COOKIE])
 async function rawBody(req:IncomingMessage):Promise<Buffer>{const chunks:Buffer[]=[];let size=0;for await(const chunk of req){const value=Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk);size+=value.length;if(size>2_000_000)throw new Error('Request body exceeds the 2 MB limit.');chunks.push(value)}return Buffer.concat(chunks)}
 async function jsonBody<T>(req:IncomingMessage):Promise<T>{const body=await rawBody(req);return JSON.parse(body.toString('utf8')||'{}') as T}
 export function verifyWebhookSignature(body:Buffer,signature:string|undefined,secret=process.env.GITHUB_WEBHOOK_SECRET):boolean{if(!secret||!signature)return false;const expected=`sha256=${crypto.createHmac('sha256',secret).update(body).digest('hex')}`;return expected.length===signature.length&&crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(signature))}
+function aiInput(body:{provider?:unknown;baseUrl?:unknown;model?:unknown;apiKey?:unknown}){if(body.provider!=='ollama'&&body.provider!=='openai-compatible')throw new Error('Choose a supported AI provider.');if(typeof body.baseUrl!=='string'||typeof body.model!=='string'||typeof body.apiKey!=='string')throw new Error('AI settings are incomplete.');const url=new URL(body.baseUrl);if(!['http:','https:'].includes(url.protocol)||body.baseUrl.length>500||!body.model.trim()||body.model.length>200||body.apiKey.length>1000)throw new Error('AI settings contain an invalid URL, model, or key.');return{provider:body.provider as AiProvider,baseUrl:url.toString().replace(/\/$/,''),model:body.model.trim(),apiKey:body.apiKey.trim()||undefined}}
 
 export async function handleApiRequest(req: IncomingMessage, res: ServerResponse) {
   const url = new URL(req.url||'/', appUrl(req));
@@ -60,6 +61,9 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
   if (url.pathname === '/api/scans/latest' && req.method === 'GET') { const current=await session(req); if(!current)return json(res,401,{error:'Authentication required.'}); return json(res,200,await getLatestScan(current.githubId)); }
   if(url.pathname==='/api/passport/settings'&&req.method==='GET'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});return json(res,200,{...await getPassportSettings(current.githubId),login:current.user.login})}
   if(url.pathname==='/api/passport/settings'&&req.method==='PUT'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});const body=await jsonBody<{isPublic?:unknown}>(req);if(typeof body.isPublic!=='boolean')return json(res,400,{error:'isPublic must be a boolean.'});return json(res,200,{...await setPassportPublic(current.githubId,body.isPublic),login:current.user.login})}
+  if(url.pathname==='/api/ai-settings'&&req.method==='GET'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});return json(res,200,await getAiSettings(current.githubId))}
+  if(url.pathname==='/api/ai-settings'&&req.method==='PUT'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});try{return json(res,200,await saveAiSettings(current.githubId,aiInput(await jsonBody(req))))}catch(error){return json(res,400,{error:error instanceof Error?error.message:'Invalid AI settings.'})}}
+  if(url.pathname==='/api/ai-settings/test'&&req.method==='POST'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});try{const input=aiInput(await jsonBody(req));const saved=await getAiRuntimeSettings(current.githubId);return json(res,200,await testAiProvider({...input,apiKey:input.apiKey||saved.apiKey}))}catch(error){return json(res,400,{error:error instanceof Error?error.message:'Invalid AI settings.'})}}
   if(url.pathname==='/api/career-target'&&req.method==='GET'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});return json(res,200,await getCareerTarget(current.githubId))}
   if(url.pathname==='/api/career-target'&&req.method==='POST'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});const body=await jsonBody<{role?:string;jobDescription?:string}>(req);if(!body.role?.trim()||body.role.length>100||Number(body.jobDescription?.length||0)>8000)return json(res,400,{error:'Enter a role (max 100 characters) and a job description under 8,000 characters.'});const scan=await getLatestScan(current.githubId);if(!scan?.result)return json(res,409,{error:'Complete a code scan before generating a career target.'});return json(res,201,await saveCareerTarget(current.githubId,generateCareerTarget(scan.result as AnalysisResult,body.role,body.jobDescription||'')))}
   if(url.pathname==='/api/quests/current'&&req.method==='GET'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});return json(res,200,await getCurrentQuest(current.githubId))}

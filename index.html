@@ -17,7 +17,7 @@
     <header class="topbar">
       <a class="brand" href="#" aria-label="DEVTREE home"><span class="brand-mark">D/</span> DEVTREE</a>
       <div class="scan-state"><span class="pulse"></span> <span id="scanState" data-i18n="status.demo">DEMO INDEX</span> <span class="muted" id="scanTime" data-i18n="status.ready">READY</span></div>
-      <div class="top-actions"><button class="language-toggle" id="languageToggle" type="button" aria-label="Switch to Chinese">中</button><button class="avatar" id="profileAvatar" data-i18n-aria="nav.profile" aria-label="Open profile">LC</button></div>
+      <div class="top-actions"><button class="language-toggle" id="languageToggle" type="button" aria-label="Switch to Chinese">中</button><button class="settings-toggle" id="aiSettingsButton" type="button" data-i18n-aria="ai.open" aria-label="AI settings">AI</button><button class="avatar" id="profileAvatar" data-i18n-aria="nav.profile" aria-label="Open profile">LC</button></div>
     </header>
 
     <main>
@@ -149,6 +149,22 @@
       <div class="evidence-head"><h3 data-i18n="drawer.evidence">Code evidence</h3><span id="evidenceCount">06 SIGNALS</span></div>
       <div id="evidenceList"></div>
       <div class="next-level"><span data-i18n="drawer.next">NEXT LEVEL</span><p id="nextLevel">Add integration tests and production observability to reach Level 9.</p></div>
+    </aside>
+    <div class="drawer-backdrop ai-backdrop" id="aiBackdrop"></div>
+    <aside class="ai-settings" id="aiSettings" aria-hidden="true">
+      <button class="drawer-close" id="aiSettingsClose" data-i18n-aria="ai.close" aria-label="Close AI settings">×</button>
+      <p class="eyebrow" data-i18n="ai.eyebrow">AI REVIEW / ACCOUNT SETTINGS</p>
+      <h2 data-i18n="ai.title">Choose where code review runs.</h2>
+      <p data-i18n="ai.description">Local Ollama keeps code on this machine. Cloud-compatible providers send selected evidence snippets to the configured API.</p>
+      <form id="aiSettingsForm">
+        <label><span data-i18n="ai.provider">PROVIDER</span><select id="aiProvider"><option value="ollama">Ollama · Local</option><option value="openai-compatible">OpenAI-compatible API</option></select></label>
+        <label><span data-i18n="ai.baseUrl">BASE URL</span><input id="aiBaseUrl" type="url" required autocomplete="url"></label>
+        <label><span data-i18n="ai.model">MODEL</span><input id="aiModel" required autocomplete="off"></label>
+        <label id="aiKeyField"><span data-i18n="ai.key">API KEY</span><input id="aiApiKey" type="password" autocomplete="new-password" data-i18n-placeholder="ai.keyPlaceholder" placeholder="Leave blank to keep the saved key"><small id="aiKeyStatus"></small></label>
+        <div class="ai-safety"><b>◆</b><span data-i18n="ai.safety">Keys are encrypted on the server and never returned to the browser.</span></div>
+        <div class="ai-actions"><button id="testAi" type="button" data-i18n="ai.test">TEST CONNECTION</button><button type="submit" data-i18n="ai.save">SAVE SETTINGS</button></div>
+        <output id="aiResult" aria-live="polite"></output>
+      </form>
     </aside>
     <div class="modal" id="scoreModal" aria-hidden="true"><div><button id="modalClose">×</button><p class="eyebrow" data-i18n="modal.eyebrow">SCORING PROTOCOL</p><h2 data-i18n="modal.title">Levels are earned, never selected.</h2><p data-i18n="modal.description">DEVTREE reads implementation patterns across your repositories, weighs complexity and repetition, then links every conclusion to inspectable code.</p><ol><li><b>01</b> <span data-i18n="modal.step1">Code is indexed without storing secrets.</span></li><li><b>02</b> <span data-i18n="modal.step2">Capabilities are extracted with file-level citations.</span></li><li><b>03</b> <span data-i18n="modal.step3">Evidence is scored for depth, repetition and recency.</span></li></ol></div></div>
     <div class="scan-overlay" id="scanOverlay" aria-hidden="true">
