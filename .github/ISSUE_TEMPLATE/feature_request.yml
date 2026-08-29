@@ -1,0 +1,24 @@
+name: Feature request
+description: Propose a focused product or engineering improvement
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: User need
+      description: What developer problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the workflow from the user's side of the screen.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Code-evidence implications
+      description: If this changes scoring, explain how false positives and inspectability should work.

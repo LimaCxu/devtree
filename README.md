@@ -1,8 +1,14 @@
 # DEVTREE
 
+[![CI](https://github.com/LimaCxu/devtree/actions/workflows/ci.yml/badge.svg)](https://github.com/LimaCxu/devtree/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-27d8d0.svg)](LICENSE)
+[![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-111820.svg)](package.json)
+
 **Your code becomes your skill tree.**
 
-DEVTREE is an interactive product prototype for a code-verified developer passport. It turns repository evidence into explainable skill levels, reveals new branches through a fog-of-war skill graph, and creates real GitHub quests around demonstrated capability gaps.
+DEVTREE is an open-source, code-verified developer passport. It turns repository evidence into explainable skill levels, reveals new branches through a fog-of-war skill graph, and creates real GitHub quests around demonstrated capability gaps.
+
+> **Alpha software:** scoring rules and database schemas are evolving. Do not expose a local instance to the public internet without reviewing `SECURITY.md` and replacing every example secret.
 
 ## Product features
 
@@ -29,14 +35,15 @@ DEVTREE is an interactive product prototype for a code-verified developer passpo
 - Idempotent GitHub webhook delivery handling and one-time, transactional Quest XP rewards
 - Account-level AI settings for local Ollama or OpenAI-compatible APIs, with encrypted keys and connection testing
 
-## Run locally
+## Quick start
 
 ```bash
-npm install
-npm run dev
+cp .env.example .env
+# Add your GitHub OAuth client ID, secret, and a strong encryption key.
+docker compose up --build -d
 ```
 
-The UI runs at `http://localhost:5173`. `npm run typecheck` validates both browser and server contracts.
+Open `http://localhost:4317`. PostgreSQL, Redis, the API, and the scan worker run in Docker; Ollama runs on the host. For frontend-only development, use `npm install && npm run dev` and open `http://localhost:5173`.
 
 ## Connect a GitHub OAuth app
 
@@ -101,6 +108,10 @@ For production, replace the example database password, set a long random `TOKEN_
 ## Open source
 
 DEVTREE is available under the MIT License. Contributions are welcome; read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) before submitting changes.
+
+- [Report a bug](https://github.com/LimaCxu/devtree/issues/new?template=bug_report.yml)
+- [Propose a feature](https://github.com/LimaCxu/devtree/issues/new?template=feature_request.yml)
+- [Read the changelog](CHANGELOG.md)
 
 ## Verification
 

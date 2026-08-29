@@ -1,7 +1,14 @@
 {
   "name": "devtree",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "private": true,
+  "description": "Code-verified developer skill trees powered by GitHub evidence and local AI.",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/LimaCxu/devtree.git" },
+  "homepage": "https://github.com/LimaCxu/devtree#readme",
+  "bugs": { "url": "https://github.com/LimaCxu/devtree/issues" },
+  "keywords": ["github", "developer-tools", "skill-tree", "ollama", "career", "typescript"],
+  "engines": { "node": ">=22" },
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
