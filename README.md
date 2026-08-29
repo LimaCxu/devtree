@@ -24,6 +24,9 @@ DEVTREE is an interactive product prototype for a code-verified developer passpo
 - English/Chinese interface switching across static and live scan states
 - Evidence V2 scoring with source-kind weights, repository deduplication, commit-pinned citations, and adversarial Ollama review
 - Persistent quests with signed GitHub push webhooks and changed-file verification
+- Private-by-default Developer Passports with explicit publishing and shareable `/p/<github-login>` pages
+- Persisted Career Boss targets generated from a role/JD, current code evidence, and a 4/8/12-week quest line
+- Idempotent GitHub webhook delivery handling and one-time, transactional Quest XP rewards
 
 ## Run locally
 
@@ -77,6 +80,8 @@ Browser → Node API → PostgreSQL
 
 OAuth states, sessions, encrypted GitHub tokens, scan jobs, and completed results survive application restarts. The API returns a job immediately; the browser polls `/api/scans/:id` while the worker analyzes repositories in the background.
 
+Developer Passports are private by default. After a signed-in developer explicitly publishes one, the read-only public route is `/p/<github-login>`. Making the Passport private immediately disables the public API and route. Career targets and generated roadmaps are stored per developer and restored on the next visit.
+
 Shared contracts live in `shared/types.ts`. Vite builds the browser bundle while TypeScript compiles the Node API and worker into `dist-server` for the production container.
 
 For production, replace the example database password, set a long random `TOKEN_ENCRYPTION_KEY`, terminate TLS in front of the app, and keep PostgreSQL and Redis off public ports. See [SECURITY.md](SECURITY.md).
@@ -97,4 +102,4 @@ npm run build
 
 > Skills are claims. Code is evidence. Show me the code.
 
-This milestone includes the working GitHub analysis pipeline, durable encrypted sessions, local LLM evidence review, resumable scan state, and inspectable code citations. Webhook rescans and public passport URLs remain on the production roadmap.
+This milestone includes the working GitHub analysis pipeline, durable encrypted sessions, local LLM evidence review, resumable scan state, inspectable code citations, push-triggered Quest verification, public Passport URLs, and evidence-based Career Boss roadmaps.

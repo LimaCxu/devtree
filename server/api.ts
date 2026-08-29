@@ -1,10 +1,11 @@
 import crypto from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { ollamaStatus } from './ollama.js';
-import { acceptedQuestsForRepository, consumeState, createScan, createSession, dbHealth, deleteSession, getCurrentQuest, getLatestScan, getScan, getSession, saveQuest, saveState, saveUser } from './db.js';
+import { acceptedQuestsForRepository, consumeState, createScan, createSession, dbHealth, deleteSession, getCareerTarget, getCurrentQuest, getLatestScan, getPassportSettings, getPublicPassport, getScan, getSession, registerWebhookDelivery, saveCareerTarget, saveQuest, saveState, saveUser, setPassportPublic } from './db.js';
 import { enqueueScan, queueHealth } from './queue.js';
 import { recommendQuest } from './quests.js';
-import type { AnalysisResult } from '../shared/types.js';
+import { generateCareerTarget } from './career.js';
+import type { AnalysisResult, PublicPassport } from '../shared/types.js';
 
 const COOKIE = 'devtree_session';
 
@@ -14,13 +15,14 @@ function redirect(res: ServerResponse, location: string, cookie?: string) { cons
 function appUrl(req: IncomingMessage) { return process.env.APP_URL || `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`; }
 function session(req: IncomingMessage) { return getSession(cookies(req)[COOKIE]); }
 async function rawBody(req:IncomingMessage):Promise<Buffer>{const chunks:Buffer[]=[];for await(const chunk of req)chunks.push(Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk));return Buffer.concat(chunks)}
+async function jsonBody<T>(req:IncomingMessage):Promise<T>{const body=await rawBody(req);return JSON.parse(body.toString('utf8')||'{}') as T}
 function validWebhook(body:Buffer,signature:string|undefined):boolean{const secret=process.env.GITHUB_WEBHOOK_SECRET;if(!secret||!signature)return false;const expected=`sha256=${crypto.createHmac('sha256',secret).update(body).digest('hex')}`;return expected.length===signature.length&&crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(signature))}
 
 export async function handleApiRequest(req: IncomingMessage, res: ServerResponse) {
   const url = new URL(req.url, appUrl(req));
   if(url.pathname==='/api/webhooks/github'&&req.method==='POST'){
     const body=await rawBody(req);if(!validWebhook(body,req.headers['x-hub-signature-256'] as string|undefined))return json(res,401,{error:'Invalid webhook signature.'});
-    const event=req.headers['x-github-event'];if(event!=='push')return json(res,202,{ok:true,ignored:true});
+    const event=String(req.headers['x-github-event']||'unknown');const delivery=String(req.headers['x-github-delivery']||'');if(!delivery)return json(res,400,{error:'GitHub delivery ID is missing.'});if(!await registerWebhookDelivery(delivery,event))return json(res,202,{ok:true,duplicate:true});if(event!=='push')return json(res,202,{ok:true,ignored:true});
     const payload=JSON.parse(body.toString('utf8')) as {repository?:{full_name?:string}};const repository=payload.repository?.full_name;if(!repository)return json(res,400,{error:'Repository is missing.'});
     const quests=await acceptedQuestsForRepository(repository);for(const githubId of new Set(quests.map(quest=>quest.githubId))){const id=await createScan(githubId);await enqueueScan(id)}return json(res,202,{ok:true,scans:new Set(quests.map(quest=>quest.githubId)).size});
   }
@@ -28,6 +30,11 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
   if (url.pathname === '/api/auth/status') {
     const current = await session(req);
     return json(res, 200, { connected: Boolean(current), user: current?.user || null, oauthConfigured: Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) });
+  }
+  const publicPassportMatch=url.pathname.match(/^\/api\/passports\/([A-Za-z0-9-]+)$/);
+  if(publicPassportMatch&&req.method==='GET'){
+    const row=await getPublicPassport(publicPassportMatch[1]);if(!row)return json(res,404,{error:'This Developer Passport is private or unavailable.'});
+    const result=row.result as AnalysisResult;const passport:PublicPassport={public:true,profile:{...result.profile,xp:row.xp},scannedAt:result.scannedAt,skills:result.skills,repositories:result.repositories.map(repository=>({name:repository.name,url:repository.url,language:repository.language})),aiVerified:result.aiReview.used};return json(res,200,passport);
   }
   if (url.pathname === '/api/auth/github') {
     console.log(`[auth] GitHub authorization started at ${new Date().toISOString()}`);
@@ -51,6 +58,10 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
     const id = await createScan(current.githubId); await enqueueScan(id); return json(res, 202, { id, status: 'queued', stage: 'queued', progress: 0, result: null, error: null });
   }
   if (url.pathname === '/api/scans/latest' && req.method === 'GET') { const current=await session(req); if(!current)return json(res,401,{error:'Authentication required.'}); return json(res,200,await getLatestScan(current.githubId)); }
+  if(url.pathname==='/api/passport/settings'&&req.method==='GET'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});return json(res,200,{...await getPassportSettings(current.githubId),login:current.user.login})}
+  if(url.pathname==='/api/passport/settings'&&req.method==='PUT'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});const body=await jsonBody<{isPublic?:unknown}>(req);if(typeof body.isPublic!=='boolean')return json(res,400,{error:'isPublic must be a boolean.'});return json(res,200,{...await setPassportPublic(current.githubId,body.isPublic),login:current.user.login})}
+  if(url.pathname==='/api/career-target'&&req.method==='GET'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});return json(res,200,await getCareerTarget(current.githubId))}
+  if(url.pathname==='/api/career-target'&&req.method==='POST'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});const body=await jsonBody<{role?:string;jobDescription?:string}>(req);if(!body.role?.trim()||body.role.length>100||Number(body.jobDescription?.length||0)>8000)return json(res,400,{error:'Enter a role (max 100 characters) and a job description under 8,000 characters.'});const scan=await getLatestScan(current.githubId);if(!scan?.result)return json(res,409,{error:'Complete a code scan before generating a career target.'});return json(res,201,await saveCareerTarget(current.githubId,generateCareerTarget(scan.result as AnalysisResult,body.role,body.jobDescription||'')))}
   if(url.pathname==='/api/quests/current'&&req.method==='GET'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});return json(res,200,await getCurrentQuest(current.githubId))}
   if(url.pathname==='/api/quests/recommended'&&req.method==='GET'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});const scan=await getLatestScan(current.githubId);if(!scan?.result)return json(res,409,{error:'Complete a code scan before generating a quest.'});return json(res,200,recommendQuest(scan.result as AnalysisResult))}
   if(url.pathname==='/api/quests/accept'&&req.method==='POST'){const current=await session(req);if(!current)return json(res,401,{error:'Authentication required.'});const existing=await getCurrentQuest(current.githubId);if(existing?.status==='accepted')return json(res,200,existing);const scan=await getLatestScan(current.githubId);if(!scan?.result)return json(res,409,{error:'Complete a code scan before accepting a quest.'});const quest=recommendQuest(scan.result as AnalysisResult);if(!quest.baselineSha)return json(res,409,{error:'Run a fresh Evidence V2 scan before accepting this quest.'});return json(res,201,await saveQuest(current.githubId,quest))}

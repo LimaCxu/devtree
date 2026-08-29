@@ -43,11 +43,15 @@
             <div class="passport-seal"><b id="overallLevel">31</b><span>LV</span></div>
           </div>
           <div class="role" data-i18n="passport.role">AI BACKEND ENGINEER</div>
-          <div class="xp-label"><span>8,420 XP</span><span>9,000</span></div>
-          <div class="xp"><i style="width: 86%"></i></div>
+          <div class="xp-label"><span id="xpCurrent">0 XP</span><span id="xpNext">1,000</span></div>
+          <div class="xp"><i id="xpBar" style="width:0"></i></div>
           <div class="passport-stats">
-            <div><span data-i18n="passport.top">TOP SKILL</span><b>PYTHON 92</b></div>
+            <div><span data-i18n="passport.top">TOP SKILL</span><b id="topSkill">PYTHON 92</b></div>
             <div><span data-i18n="passport.repositories">REPOSITORIES</span><b id="repoCount">12 VERIFIED</b></div>
+          </div>
+          <div class="passport-actions" id="passportActions">
+            <button id="publishPassport" type="button" data-i18n="passport.publish">PUBLISH PASSPORT</button>
+            <button id="sharePassport" type="button" data-i18n="passport.copy" hidden>COPY LINK</button>
           </div>
           <div class="fingerprint" aria-hidden="true">⌁⌁⌁<br>⌁◉⌁<br>⌁⌁⌁</div>
           <div class="verified"><span>◆</span> <span data-i18n="passport.seal">VERIFIED BY CODE</span></div>
@@ -111,11 +115,15 @@
       <section class="boss-section">
         <div class="boss-copy">
           <p class="eyebrow" data-i18n="boss.eyebrow">CAREER BOSS / TARGET ROLE</p>
-          <h2><span data-i18n="boss.title">AI Engineer</span> <span>LV.50</span></h2>
-          <p data-i18n="boss.description">You're 63% ready. Close the evidence gaps that matter most.</p>
-          <button class="primary-btn" data-toast-key="toast.roadmap"><span data-i18n="boss.generate">GENERATE QUEST LINE</span> <span>→</span></button>
+          <h2><strong id="bossRole" data-i18n="boss.title">AI Engineer</strong> <span>LV.50</span></h2>
+          <p id="bossDescription" data-i18n="boss.description">You're 63% ready. Close the evidence gaps that matter most.</p>
+          <form class="boss-form" id="bossForm">
+            <input id="targetRole" maxlength="100" data-i18n-placeholder="boss.rolePlaceholder" placeholder="Target role: AI Engineer" required>
+            <textarea id="jobDescription" maxlength="8000" rows="4" data-i18n-placeholder="boss.jdPlaceholder" placeholder="Paste a job description (optional)"></textarea>
+            <button class="primary-btn" type="submit"><span data-i18n="boss.generate">GENERATE QUEST LINE</span> <span>→</span></button>
+          </form>
         </div>
-        <div class="boss-bars">
+        <div><div class="boss-bars" id="bossBars">
           <div class="bar-head"><span data-i18n="boss.skill">SKILL</span><span data-i18n="boss.you">YOU</span><span data-i18n="boss.target">TARGET</span></div>
           <div class="bar-row"><b>Python</b><i><u style="width:92%"></u></i><i><u style="width:90%"></u></i></div>
           <div class="bar-row"><b>LLM</b><i><u style="width:68%"></u></i><i><u style="width:92%"></u></i></div>
@@ -123,7 +131,7 @@
           <div class="bar-row"><b>Agents</b><i><u style="width:41%"></u></i><i><u style="width:80%"></u></i></div>
           <div class="bar-row gap"><b>Evaluation</b><i><u style="width:22%"></u></i><i><u style="width:78%"></u></i></div>
           <div class="bar-row gap"><b>MLOps</b><i><u style="width:18%"></u></i><i><u style="width:70%"></u></i></div>
-        </div>
+        </div><div class="roadmap" id="roadmap" hidden></div></div>
       </section>
     </main>
 

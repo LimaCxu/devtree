@@ -13,6 +13,7 @@ const messages = {
     'connection.offline.title': 'Local API is offline', 'connection.offline.detail': 'Run docker compose up --build -d, then retry.',
     'connection.oauth.title': 'GitHub OAuth is not configured', 'connection.oauth.detail': 'Add the client ID and secret to .env, then restart Docker.',
     'passport.verified': 'VERIFIED DEVELOPER', 'passport.role': 'AI BACKEND ENGINEER', 'passport.top': 'TOP SKILL', 'passport.repositories': 'REPOSITORIES', 'passport.seal': 'VERIFIED BY CODE',
+    'passport.publish': 'PUBLISH PASSPORT', 'passport.unpublish': 'MAKE PRIVATE', 'passport.copy': 'COPY LINK', 'passport.publicView': 'PUBLIC PASSPORT',
     'tree.eyebrow': 'SKILL GRAPH / LIVE', 'tree.title': 'What your code proves.', 'tree.verified': 'VERIFIED', 'tree.emerging': 'EMERGING', 'tree.unknown': 'UNDISCOVERED',
     'tree.all': 'ALL DOMAINS', 'tree.backend': 'BACKEND', 'tree.ai': 'AI ENGINEERING', 'tree.hint': 'SELECT A NODE TO INSPECT ITS CODE EVIDENCE',
     'quest.unlocked': 'NEW QUEST UNLOCKED', 'quest.eyebrow': 'GROWTH OPPORTUNITY / TESTING', 'quest.title': 'The Testing Dungeon',
@@ -22,7 +23,8 @@ const messages = {
     'quest.pytest': 'Configure pytest', 'quest.integration': 'Add API integration tests', 'quest.mock': 'Mock LLM responses', 'quest.coverage': 'Reach 80% module coverage',
     'quest.reward': 'ESTIMATED REWARD', 'quest.accept': 'ACCEPT QUEST', 'quest.active': 'QUEST ACTIVE', 'quest.completed': 'QUEST COMPLETED', 'quest.note': 'Final reward depends on code verification.', 'quest.repository': 'Target repository: {repository}', 'quest.freshScan': 'Run a fresh Evidence V2 scan to establish the quest baseline.',
     'boss.eyebrow': 'CAREER BOSS / TARGET ROLE', 'boss.title': 'AI Engineer', 'boss.description': "You're 63% ready. Close the evidence gaps that matter most.", 'boss.generate': 'GENERATE QUEST LINE',
-    'boss.skill': 'SKILL', 'boss.you': 'YOU', 'boss.target': 'TARGET',
+    'boss.skill': 'SKILL', 'boss.you': 'YOU', 'boss.target': 'TARGET', 'boss.rolePlaceholder': 'Target role: AI Engineer', 'boss.jdPlaceholder': 'Paste a job description (optional)',
+    'boss.readiness': "You're {readiness}% ready. Close the evidence gaps that matter most.", 'boss.weeks': 'WEEKS {weeks}', 'boss.evidence': 'CODE EVIDENCE', 'boss.closeGap': 'Raise {skill} from {current}% toward {target}%.', 'boss.proveSkill': 'Ship inspectable {skill} implementation and tests.',
     'footer.slogan': 'SKILLS ARE CLAIMS. CODE IS EVIDENCE.',
     'drawer.eyebrow': 'VERIFIED SKILL / CODE EVIDENCE', 'drawer.updated': 'LATEST VERIFIED SCAN', 'drawer.level': 'LEVEL', 'drawer.confidence': 'AI CONFIDENCE',
     'drawer.why': 'Why am I Level {level}?', 'drawer.evidence': 'Code evidence', 'drawer.signals': '{count} SIGNALS', 'drawer.next': 'NEXT LEVEL', 'drawer.empty': 'No inspectable evidence found in the indexed repositories.',
@@ -39,7 +41,7 @@ const messages = {
     'scan.completed.title': 'Skill graph ready', 'scan.completed.detail': 'Every visible level now links back to code evidence.',
     'scan.failed.title': 'Scan stopped', 'scan.failed.detail': 'The current stage could not be completed.',
     'toast.offline': 'Local API is offline', 'toast.oauth': 'GitHub OAuth credentials are missing', 'toast.authExpired': 'GitHub authorization expired — try again', 'toast.authFailed': 'GitHub authorization failed — try again',
-    'toast.quest': 'Quest accepted — check your repository', 'toast.roadmap': 'Your 12-week quest line is ready', 'toast.passport': 'Developer Passport — verified from your GitHub code',
+    'toast.quest': 'Quest accepted — check your repository', 'toast.questCompleted': 'Quest completed — XP verified and awarded', 'toast.roadmap': 'Your 12-week quest line is ready', 'toast.passport': 'Developer Passport — verified from your GitHub code', 'toast.published': 'Public Passport published', 'toast.private': 'Passport is private', 'toast.copied': 'Public Passport link copied',
     'count.nodes': '{verified} / {total} NODES DISCOVERED', 'count.evidence': '{count} EVIDENCE', 'count.none': 'NO SIGNAL', 'count.repositories': '{count} VERIFIED', 'scan.verified': '{count} files verified{model}'
   },
   zh: {
@@ -54,6 +56,7 @@ const messages = {
     'connection.offline.title': '本地 API 未运行', 'connection.offline.detail': '运行 docker compose up --build -d 后重试。',
     'connection.oauth.title': '尚未配置 GitHub OAuth', 'connection.oauth.detail': '在 .env 中添加 Client ID 和 Secret，然后重启 Docker。',
     'passport.verified': '已验证开发者', 'passport.role': 'AI 后端工程师', 'passport.top': '最强技能', 'passport.repositories': '代码仓库', 'passport.seal': '代码已验证',
+    'passport.publish': '发布开发者护照', 'passport.unpublish': '设为私密', 'passport.copy': '复制链接', 'passport.publicView': '公开开发者护照',
     'tree.eyebrow': '技能图谱 / 实时', 'tree.title': '你的代码证明了什么。', 'tree.verified': '已验证', 'tree.emerging': '成长中', 'tree.unknown': '尚未发现',
     'tree.all': '全部领域', 'tree.backend': '后端工程', 'tree.ai': 'AI 工程', 'tree.hint': '选择技能节点，查看具体代码证据',
     'quest.unlocked': '新任务已解锁', 'quest.eyebrow': '成长机会 / 测试能力', 'quest.title': '测试地牢',
@@ -63,7 +66,8 @@ const messages = {
     'quest.pytest': '配置 pytest', 'quest.integration': '添加 API 集成测试', 'quest.mock': '模拟 LLM 响应', 'quest.coverage': '模块覆盖率达到 80%',
     'quest.reward': '预计奖励', 'quest.accept': '接受任务', 'quest.active': '任务进行中', 'quest.completed': '任务已完成', 'quest.note': '最终奖励以代码验证结果为准。', 'quest.repository': '目标仓库：{repository}', 'quest.freshScan': '请先运行一次 Evidence V2 扫描，建立任务基线。',
     'boss.eyebrow': '职业 BOSS / 目标岗位', 'boss.title': 'AI 工程师', 'boss.description': '当前准备度 63%。优先补齐最关键的能力缺口。', 'boss.generate': '生成任务路线',
-    'boss.skill': '技能', 'boss.you': '当前', 'boss.target': '目标',
+    'boss.skill': '技能', 'boss.you': '当前', 'boss.target': '目标', 'boss.rolePlaceholder': '目标岗位：AI 工程师', 'boss.jdPlaceholder': '粘贴岗位 JD（可选）',
+    'boss.readiness': '当前准备度 {readiness}%。优先补齐最关键的能力缺口。', 'boss.weeks': '第 {weeks} 周', 'boss.evidence': '代码验收标准', 'boss.closeGap': '将 {skill} 的代码证据从 {current}% 提升至接近 {target}%。', 'boss.proveSkill': '提交可检查的 {skill} 实现与测试代码。',
     'footer.slogan': '技能是声明，代码是证据。',
     'drawer.eyebrow': '已验证技能 / 代码证据', 'drawer.updated': '最近一次验证', 'drawer.level': '等级', 'drawer.confidence': 'AI 置信度',
     'drawer.why': '为什么我是 Lv.{level}？', 'drawer.evidence': '代码证据', 'drawer.signals': '{count} 条证据', 'drawer.next': '下一等级', 'drawer.empty': '已扫描的仓库中，没有发现可检查的代码证据。',
@@ -80,7 +84,7 @@ const messages = {
     'scan.completed.title': '技能图谱已生成', 'scan.completed.detail': '每个可见等级都能追溯到代码证据。',
     'scan.failed.title': '扫描已停止', 'scan.failed.detail': '当前阶段未能完成。',
     'toast.offline': '本地 API 未运行', 'toast.oauth': '缺少 GitHub OAuth 配置', 'toast.authExpired': 'GitHub 授权已过期，请重试', 'toast.authFailed': 'GitHub 授权失败，请重试',
-    'toast.quest': '任务已接受，请在目标仓库中完成', 'toast.roadmap': '12 周任务路线已生成', 'toast.passport': '开发者护照已由 GitHub 代码验证',
+    'toast.quest': '任务已接受，请在目标仓库中完成', 'toast.questCompleted': '任务完成，经验值已通过代码验证并发放', 'toast.roadmap': '12 周任务路线已生成', 'toast.passport': '开发者护照已由 GitHub 代码验证', 'toast.published': '公开开发者护照已发布', 'toast.private': '开发者护照已设为私密', 'toast.copied': '公开护照链接已复制',
     'count.nodes': '已发现 {verified} / {total} 个技能节点', 'count.evidence': '{count} 条证据', 'count.none': '暂无信号', 'count.repositories': '{count} 个已验证', 'scan.verified': '已验证 {count} 个文件{model}'
   }
 } as const;
@@ -109,6 +113,9 @@ export function applyTranslations(): void {
   });
   document.querySelectorAll<HTMLElement>('[data-i18n-aria]').forEach(element => {
     element.setAttribute('aria-label', t(element.dataset.i18nAria as MessageKey));
+  });
+  document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[data-i18n-placeholder]').forEach(element => {
+    element.placeholder = t(element.dataset.i18nPlaceholder as MessageKey);
   });
   const toggle = document.querySelector<HTMLButtonElement>('#languageToggle');
   if (toggle) { toggle.textContent = locale === 'en' ? '中' : 'EN'; toggle.setAttribute('aria-label', t('nav.language')); }

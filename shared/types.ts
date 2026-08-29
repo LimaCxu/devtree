@@ -38,6 +38,7 @@ export interface DeveloperProfile {
   bio?: string | null;
   repositoryCount?: number;
   overallLevel?: number;
+  xp?: number;
 }
 
 export interface AnalysisResult {
@@ -81,4 +82,38 @@ export interface Quest {
   objectives: QuestObjective[];
   acceptedAt?: string;
   completedAt?: string;
+}
+
+export interface PublicPassport {
+  public: boolean;
+  profile: DeveloperProfile;
+  scannedAt: string;
+  skills: Record<SkillKey, Skill>;
+  repositories: Array<{ name: string; url: string; language: string | null }>;
+  aiVerified: boolean;
+}
+
+export interface CareerGap {
+  skillKey: SkillKey;
+  title: string;
+  current: number;
+  target: number;
+  gap: number;
+}
+
+export interface RoadmapItem {
+  weeks: '1–4' | '5–8' | '9–12';
+  skillKey: SkillKey;
+  title: string;
+  outcome: string;
+  evidence: string;
+}
+
+export interface CareerTarget {
+  role: string;
+  jobDescription?: string;
+  readiness: number;
+  gaps: CareerGap[];
+  roadmap: RoadmapItem[];
+  updatedAt?: string;
 }
