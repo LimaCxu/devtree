@@ -20,7 +20,7 @@ async function githubCompare(token:string,repository:string,baseline:string,head
   return new Set((data.files||[]).map(file=>file.filename));
 }
 
-export async function verifyAcceptedQuests(githubId:string,token:string,result:AnalysisResult):Promise<void>{
+export async function verifyAcceptedQuests(githubId:string|number,token:string,result:AnalysisResult):Promise<void>{
   const quests=await acceptedQuestsForUser(githubId);
   for(const quest of quests){
     const repository=result.repositories.find(item=>item.fullName===quest.repositoryFullName);

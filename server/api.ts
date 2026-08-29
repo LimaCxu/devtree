@@ -14,14 +14,14 @@ function json(res: ServerResponse, status: number, data: unknown) { res.writeHea
 function redirect(res: ServerResponse, location: string, cookie?: string) { const headers: Record<string,string> = { location }; if (cookie) headers['set-cookie'] = cookie; res.writeHead(302, headers); res.end(); }
 function appUrl(req: IncomingMessage) { return process.env.APP_URL || `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`; }
 function session(req: IncomingMessage) { return getSession(cookies(req)[COOKIE]); }
-async function rawBody(req:IncomingMessage):Promise<Buffer>{const chunks:Buffer[]=[];for await(const chunk of req)chunks.push(Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk));return Buffer.concat(chunks)}
+async function rawBody(req:IncomingMessage):Promise<Buffer>{const chunks:Buffer[]=[];let size=0;for await(const chunk of req){const value=Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk);size+=value.length;if(size>2_000_000)throw new Error('Request body exceeds the 2 MB limit.');chunks.push(value)}return Buffer.concat(chunks)}
 async function jsonBody<T>(req:IncomingMessage):Promise<T>{const body=await rawBody(req);return JSON.parse(body.toString('utf8')||'{}') as T}
-function validWebhook(body:Buffer,signature:string|undefined):boolean{const secret=process.env.GITHUB_WEBHOOK_SECRET;if(!secret||!signature)return false;const expected=`sha256=${crypto.createHmac('sha256',secret).update(body).digest('hex')}`;return expected.length===signature.length&&crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(signature))}
+export function verifyWebhookSignature(body:Buffer,signature:string|undefined,secret=process.env.GITHUB_WEBHOOK_SECRET):boolean{if(!secret||!signature)return false;const expected=`sha256=${crypto.createHmac('sha256',secret).update(body).digest('hex')}`;return expected.length===signature.length&&crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(signature))}
 
 export async function handleApiRequest(req: IncomingMessage, res: ServerResponse) {
-  const url = new URL(req.url, appUrl(req));
+  const url = new URL(req.url||'/', appUrl(req));
   if(url.pathname==='/api/webhooks/github'&&req.method==='POST'){
-    const body=await rawBody(req);if(!validWebhook(body,req.headers['x-hub-signature-256'] as string|undefined))return json(res,401,{error:'Invalid webhook signature.'});
+    const body=await rawBody(req);if(!verifyWebhookSignature(body,req.headers['x-hub-signature-256'] as string|undefined))return json(res,401,{error:'Invalid webhook signature.'});
     const event=String(req.headers['x-github-event']||'unknown');const delivery=String(req.headers['x-github-delivery']||'');if(!delivery)return json(res,400,{error:'GitHub delivery ID is missing.'});if(!await registerWebhookDelivery(delivery,event))return json(res,202,{ok:true,duplicate:true});if(event!=='push')return json(res,202,{ok:true,ignored:true});
     const payload=JSON.parse(body.toString('utf8')) as {repository?:{full_name?:string}};const repository=payload.repository?.full_name;if(!repository)return json(res,400,{error:'Repository is missing.'});
     const quests=await acceptedQuestsForRepository(repository);for(const githubId of new Set(quests.map(quest=>quest.githubId))){const id=await createScan(githubId);await enqueueScan(id)}return json(res,202,{ok:true,scans:new Set(quests.map(quest=>quest.githubId)).size});
@@ -40,7 +40,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
     console.log(`[auth] GitHub authorization started at ${new Date().toISOString()}`);
     if (!process.env.GITHUB_CLIENT_ID) return redirect(res, '/?demo=1');
     const state = crypto.randomBytes(24).toString('hex'); await saveState(state);
-    const params = new URLSearchParams({ client_id: process.env.GITHUB_CLIENT_ID, redirect_uri: `${appUrl(req)}/api/auth/callback`, scope: 'read:user repo', state });
+    const params = new URLSearchParams({ client_id: process.env.GITHUB_CLIENT_ID, redirect_uri: `${appUrl(req)}/api/auth/callback`, scope: process.env.GITHUB_OAUTH_SCOPE || 'read:user', state });
     return redirect(res, `https://github.com/login/oauth/authorize?${params}`);
   }
   if (url.pathname === '/api/auth/callback') {

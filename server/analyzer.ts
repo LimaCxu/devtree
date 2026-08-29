@@ -4,6 +4,11 @@ import type { AnalysisResult, Evidence, Skill, SkillKey, ScanStage } from '../sh
 type SourceKind = Evidence['sourceKind'];
 interface SourceFile { repo:string; path:string; content:string; url:string; commitSha?:string; pushedAt?:string }
 interface SkillRule { title: string; base: RegExp; patterns: Array<[string, RegExp, number?]> }
+interface GitHubUser { login:string; name?:string|null; avatar_url?:string; bio?:string|null }
+interface GitHubRepo { name:string; full_name:string; html_url:string; language:string|null; pushed_at:string; default_branch:string; fork:boolean; archived:boolean }
+interface GitTreeItem { type:string; size:number; path:string }
+interface GitTree { tree:GitTreeItem[] }
+interface GitCommit { sha:string }
 const SKILL_RULES: Record<SkillKey, SkillRule> = {
   python: {
     title: 'PYTHON', base: /\.py$|(^|\/)(pyproject\.toml|setup\.py)$/i,
@@ -58,13 +63,13 @@ const GENERATED = /(\.min\.(js|css)$|(^|\/)(package-lock\.json|pnpm-lock\.yaml|y
 const MAX_REPOS = 8;
 const MAX_FILES_PER_REPO = 24;
 
-async function github(path, token) {
+async function github<T>(path:string, token:string):Promise<T> {
   const response = await fetch(`https://api.github.com${path}`, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'DEVTREE' } });
   if (!response.ok) throw new Error(`GitHub API ${response.status}: ${await response.text()}`);
-  return response.json();
+  return response.json() as Promise<T>;
 }
 
-function candidateScore(path) {
+function candidateScore(path:string) {
   let score = 0;
   if (/(^|\/)(src|app|api|server|core|tests?|evals?)(\/|$)/i.test(path)) score += 3;
   if (/(route|auth|middleware|agent|retriev|rag|llm|model|schema|migration|test|eval)/i.test(path)) score += 4;
@@ -72,16 +77,17 @@ function candidateScore(path) {
   return score;
 }
 
-function lineFor(content, regex) {
+function lineFor(content:string, regex:RegExp) {
   const match = content.match(regex);
   return match ? content.slice(0, match.index).split('\n').length : 1;
 }
 
-function snippetFor(content, regex) {
+function snippetFor(content:string, regex:RegExp) {
   const match = content.match(regex);
   if (!match) return '';
-  const start = Math.max(0, match.index - 120);
-  return content.slice(start, Math.min(content.length, match.index + match[0].length + 220)).replace(/\s+/g, ' ').trim();
+  const index=match.index??0;
+  const start = Math.max(0, index - 120);
+  return content.slice(start, Math.min(content.length, index + match[0].length + 220)).replace(/\s+/g, ' ').trim();
 }
 
 function sourceKind(path: string): SourceKind {
@@ -137,14 +143,14 @@ export function scoreSkills(files: SourceFile[]): Record<SkillKey, Skill> {
 
 export async function analyzeGitHub(token: string, onProgress: (stage: ScanStage, progress: number) => Promise<void> = async () => {}) : Promise<AnalysisResult> {
   await onProgress('repositories', 15);
-  const [user, allRepos] = await Promise.all([github('/user', token), github('/user/repos?per_page=50&sort=pushed&affiliation=owner,collaborator', token)]);
+  const [user, allRepos] = await Promise.all([github<GitHubUser>('/user', token), github<GitHubRepo[]>('/user/repos?per_page=50&sort=pushed&affiliation=owner,collaborator', token)]);
   const repos = allRepos.filter(repo => !repo.fork && !repo.archived).slice(0, MAX_REPOS);
   const files: SourceFile[] = [];
   const repoHeads = new Map<string,string>();
   for (const [repoIndex, repo] of repos.entries()) {
     try {
       const branch = encodeURIComponent(repo.default_branch);
-      const [tree, commit] = await Promise.all([github(`/repos/${repo.full_name}/git/trees/${branch}?recursive=1`, token),github(`/repos/${repo.full_name}/commits/${branch}`,token)]);
+      const [tree, commit] = await Promise.all([github<GitTree>(`/repos/${repo.full_name}/git/trees/${branch}?recursive=1`, token),github<GitCommit>(`/repos/${repo.full_name}/commits/${branch}`,token)]);
       repoHeads.set(repo.full_name,commit.sha);
       const candidates = tree.tree.filter(item => item.type === 'blob' && item.size < 100_000 && !IGNORED.test(item.path) && !GENERATED.test(item.path) && candidateScore(item.path) >= 2).sort((a, b) => candidateScore(b.path) - candidateScore(a.path)).slice(0, MAX_FILES_PER_REPO);
       for (const file of candidates) {

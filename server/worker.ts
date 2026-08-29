@@ -18,7 +18,7 @@ while (true) {
     if(githubId)await verifyAcceptedQuests(githubId,token,result);
     await updateScan(id, { status: 'completed', stage: 'completed', progress: 100, result });
   } catch (error) {
-    console.error(`[worker] scan ${id} failed:`, error.message);
+    console.error(`[worker] scan ${id} failed:`, error instanceof Error?error.message:'Unknown scan failure');
     await updateScan(id, { status: 'failed', stage: 'failed', error: error instanceof Error ? error.message : 'Unknown scan failure' });
   }
 }

@@ -43,6 +43,8 @@ The UI runs at `http://localhost:5173`. `npm run typecheck` validates both brows
 2. Copy `.env.example` to `.env` and add the client ID and secret.
 3. Export those variables in your shell, then run `npm run dev`.
 
+OAuth defaults to the minimal `read:user` scope, which scans public repositories. To explicitly include private repositories, set `GITHUB_OAUTH_SCOPE="read:user repo"` and reconnect GitHub; GitHub's legacy OAuth Apps do not provide a narrower read-only private-repository scope.
+
 For a production-like local build:
 
 ```bash

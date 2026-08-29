@@ -17,11 +17,11 @@ export async function ollamaStatus() {
   try {
     const response = await fetch(`${current.url}/api/tags`, { signal: AbortSignal.timeout(3000) });
     if (!response.ok) return { available: false, model: current.model, reason: `HTTP ${response.status}` };
-    const data = await response.json();
+    const data = await response.json() as {models?:Array<{name:string}>};
     const models = data.models?.map(item => item.name) || [];
     return { available: models.includes(current.model), model: current.model, models };
   } catch (error) {
-    return { available: false, model: current.model, reason: error.message };
+    return { available: false, model: current.model, reason: error instanceof Error?error.message:'Unknown Ollama error' };
   }
 }
 
@@ -86,6 +86,6 @@ export async function reviewWithOllama(skills: Record<SkillKey, Skill>): Promise
     })) as Record<SkillKey, Skill>;
     return { skills: reviewed, review: { used: true, model: current.model, reviewedAt: new Date().toISOString() } };
   } catch (error) {
-    return { skills, review: { used: false, reason: error.message, model: current.model } };
+    return { skills, review: { used: false, reason: error instanceof Error?error.message:'Unknown Ollama review error', model: current.model } };
   }
 }
